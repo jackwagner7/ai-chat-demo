@@ -30,6 +30,9 @@ const completion = await openai.chat.completions.create({
 
         If the user mentions a colour, honour that.
         If they don’t, choose a colour that fits the data type or tone (e.g., green for growth, red for losses, blue for neutral).
+
+        When writing SQL, always quote identifiers that contain spaces or special characters using double quotes (") — not square brackets.
+
         Do not include markdown or any other text outside these blocks.
       `,
     },

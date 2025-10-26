@@ -1,0 +1,154 @@
+.uploader {
+  position: relative; /* changed from fixed */
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition:
+    width 0.3s ease-in-out,
+    height 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out;
+  width: 400px;
+}
+
+
+/* positioning */
+.centered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+}
+
+.docked {
+  top: 1rem;
+  right: 1rem;
+  transform-origin: top right;
+}
+
+/* sizes */
+.collapsed {
+  width: 400px;
+}
+
+.expanded {
+  width: 800px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* clickable filename header */
+.header {
+  position: relative;
+  z-index: 3; /* stays on top */
+  padding: 1rem;
+  text-align: center;
+  font-weight: 500;
+  color: #1f2937;
+  background: white;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Add this to hide scroll-through bleed */
+.header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 10px; /* covers small overlap zone */
+  background: white;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* preview container */
+.preview {
+  position: relative;
+  z-index: 0;
+  background: #f9fafb;
+  padding: 0 0.75rem 0.75rem 0.75rem; /* removed top padding */
+  max-height: 400px;
+  overflow: auto;
+}
+
+/* table */
+.preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+/* sticky header row */
+.preview th {
+  position: sticky;
+  top: 0;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  z-index: 2; /* above scrolling content */
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05); /* subtle separator */
+}
+
+/* table body cells */
+.preview td {
+  border: 1px solid #e5e7eb;
+  padding: 0.25rem 0.5rem;
+  color: #374151;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+
+.panel {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  z-index: 50;
+}
+
+
+.centered {
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  flex-direction: column;
+  align-items: center;
+}
+
+.addTile {
+  width: 400px;
+  height: 60px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.addTile:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.hiddenInput {
+  display: none;
+}
