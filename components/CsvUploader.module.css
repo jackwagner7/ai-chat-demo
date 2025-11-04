@@ -1,7 +1,7 @@
 .uploader {
   position: relative; /* changed from fixed */
-  background: white;
-  border: 1px solid #d1d5db;
+  background: #B6C8C7;
+  border: 1px solid #000000;
   border-radius: 0.75rem;
   overflow: hidden;
   z-index: 1;
@@ -118,6 +118,7 @@
   align-items: flex-end;
   gap: 0.75rem;
   z-index: 50;
+
 }
 
 
@@ -132,23 +133,80 @@
 .addTile {
   width: 400px;
   height: 60px;
-  background: #f3f4f6;
-  border: 2px dashed #d1d5db;
+  background: #212842;
+  border: 0px solid #ffffff;
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: #9ca3af;
+  color: #F0e7d5;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
 
 .addTile:hover {
-  background: #e5e7eb;
+  background: #B6C8C7;
   color: #4b5563;
+  border: 2px dashed #212842;
 }
+
+.addAdditionalTile {
+  width: 60px;
+  height: 60px;
+  background: #212842;
+  border: 0px solid #ffffff;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: right;
+  justify-content: center;
+  font-size: 2rem;
+  color: #F0e7d5;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.addAdditionalTile:hover {
+  background: #B6C8C7;
+  color: #4b5563;
+  border: 2px dashed #212842;
+}
+
 
 .hiddenInput {
   display: none;
+}
+
+.title {
+  font-size: 30px;
+  text-align: center;
+  padding-bottom: 30px;
+  font-weight: bold;
+  font-style: italic; 
+  font-family:'Times New Roman';
+  
+}
+
+.dropOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: opacity 0.2s ease;
+}
+
+.dropMessage {
+  background: #1f2937;
+  color: #F0e7d5;
+  padding: 2rem 3rem;
+  border-radius: 0.75rem;
+  font-size: 1.5rem;
+  font-style: italic; 
+  font-family:'Times New Roman';
+  border: 2px dashed #F0e7d5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }

@@ -1,0 +1,255 @@
+/* SettingsShared.module.css */
+
+/* ==========================
+   ⚙️ SIDEBAR CORE
+   ========================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  z-index: 999;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+}
+
+/* --- Inputs & Labels --- */
+.sidebar label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar input[type="text"],
+.sidebar input[type="number"],
+.sidebar select,
+.sidebar textarea {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  color: #111;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar input:hover,
+.sidebar select:hover,
+.sidebar textarea:hover {
+  border-color: #aaa;
+}
+
+.sidebar input:focus,
+.sidebar select:focus,
+.sidebar textarea:focus {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 1px #0078d4;
+  background: #f9fafb;
+}
+
+/* ==========================
+   🎚 SLIDERS
+   ========================== */
+.sliderLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sliderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.numeric {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.85rem;
+  width: 60px;
+  text-align: right;
+}
+
+/* ==========================
+   🧭 ALIGNMENT
+   ========================== */
+.alignmentGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sectionTitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.alignButtons {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.alignBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f8f8f8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.alignBtn:hover {
+  background: #eee;
+}
+
+.alignBtn.active {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+.active {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+
+/* ==========================
+   💾 SQL RUNNER
+   ========================== */
+.sqlLabel {
+  font-weight: 600;
+  color: #333;
+}
+
+.sqlBox {
+  width: 100%;
+  min-height: 6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  border: 3px solid #ccc;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sqlBox:focus {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.25);
+}
+
+.sql-success {
+  border-color: #27ae60;
+  box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.35);
+}
+
+.sql-error {
+  border-color: #e67e22;
+  box-shadow: 0 0 0 4px rgba(230, 126, 34, 0.35);
+}
+
+.runSection {
+  display: flex;
+  justify-content: center;
+}
+
+.runBtn {
+  background: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.runBtn:hover:not(:disabled) {
+  background: #005fa3;
+  transform: scale(1.05);
+}
+
+.runBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================
+   ❌ DELETE
+   ========================== */
+.deleteTop {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.deleteIconBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #d9534f;
+  padding: 0.25rem;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.deleteIconBtn:hover {
+  color: #ff6b6b;
+  transform: scale(1.1);
+}
+
+/* ==========================
+   📂 ACCORDION
+   ========================== */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.sectionHeader:hover {
+  color: #0078d4;
+}
+
+.chevron {
+  transition: transform 0.25s ease;
+  opacity: 0.8;
+}
+
+.rotate {
+  transform: rotate(90deg);
+}
+
+.sectionBody {
+  padding: 0.5rem 0 0.75rem 0.75rem;
+  border-left: 2px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.75rem;
+}

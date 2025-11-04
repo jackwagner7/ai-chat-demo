@@ -1,0 +1,101 @@
+/* ==========================
+   🎨 COLOR SWATCHES
+   ========================== */
+.colorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.colorLabel {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.swatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid #ccc;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.swatch:hover {
+  transform: scale(1.05);
+}
+
+/* ✅ Selected state — black ring + white halo */
+.swatchActive {
+  border-color: transparent;
+}
+
+.swatchActive::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
+.swatchBlocked {
+  cursor: not-allowed !important;
+}
+
+.swatchBlocked::before {
+  content: "";
+  position: absolute;
+  inset: 50% -6px auto -6px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+/* 🎨 Custom paintbrush swatch */
+.customSwatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.customSwatch:hover {
+  background: #ddd;
+}
+
+/* 🟣 When a custom colour is active */
+.customActive {
+  border: 2px solid #0078d4;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.customActive svg {
+  stroke: #0078d4;
+  transform: scale(1.05);
+  transition: transform 0.2s ease, stroke 0.2s ease;
+}
+
+.customPickerRow {
+  margin-top: 0.6rem;
+  background: #fff;
+  padding: 0.6rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  width: fit-content;
+}
