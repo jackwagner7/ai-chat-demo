@@ -32,7 +32,7 @@ export default function CardView({
   onMeasureMinSize?: (size: { width: number; height: number }) => void;
 }) {
   const { themeColors } = useTheme();
-  const titleSpanRef = useRef<HTMLSpanElement>(null);
+  const titleSpanRef = useRef<HTMLSpanElement | null>(null);
 
   const titleColor =
     card.settings.titleBackground.titleColorRef !== undefined
@@ -92,7 +92,7 @@ function MeasureContent({
   onMeasureMinSize,
 }: {
   card: Extract<Card, { kind: "measure" }>;
-  titleRef: RefObject<HTMLElement>;
+  titleRef: RefObject<HTMLSpanElement | null>;
   onMeasureMinSize?: (size: { width: number; height: number }) => void;
 }) {
   const { themeColors } = useTheme();
@@ -211,18 +211,17 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
             outerRadius="80%"
             isAnimationActive={false}
           >
-            {rows.map((_, i) => (
-              <Cell
-                key={i}
-                fill={
-                  (segmentColorRefs?.[String(rows[i][xKey])] !== undefined
-                    ? themeColors[segmentColorRefs[String(rows[i][xKey])]]
-                    : segmentColors?.[String(rows[i][xKey])]) ||
-                  seriesColors?.[i % (seriesColors?.length || 1)] ||
-                  "#8884d8"
-                }
-              />
-            ))}
+            {rows.map((row, i) => {
+              const segmentKey = String(row?.[xKey] ?? "");
+              const segmentRef = segmentColorRefs?.[segmentKey];
+              const overrideColor =
+                typeof segmentRef === "number"
+                  ? themeColors[segmentRef]
+                  : segmentColors?.[segmentKey];
+              const fallbackColor =
+                seriesColors?.[i % (seriesColors?.length || 1)] || "#8884d8";
+              return <Cell key={i} fill={overrideColor ?? fallbackColor} />;
+            })}
             <LabelList
               dataKey={xKey}
               position="outside"
@@ -315,28 +314,29 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
           layout="horizontal"
           wrapperStyle={{ fontSize: `${legend.legendSize ?? 0.9}rem`, lineHeight: "1.2em" }}
         />
-          {series.map((s, i) => {
-            const fill = seriesColors?.[i] || "#8884d8";
-            return (
-              <Bar
-                key={s}
-                dataKey={s}
-                fill={fill}
-                stackId={isStacked ? "a" : undefined}
-                name={displayNames[i]?.trim() ? displayNames[i] : s}
-              >
-                {series.length === 1 && legend.segmentColorEnabled &&
-                  rows.map((row, idx) => {
-                    const categoryKey = String(row[xKey]);
-                    const overrideColor =
-                      (segmentColorRefs?.[categoryKey] !== undefined
-                        ? themeColors[segmentColorRefs[categoryKey]]
-                        : segmentColors?.[categoryKey]) || fill;
-                    return <Cell key={`${categoryKey}-${idx}`} fill={overrideColor} />;
-                  })}
-              </Bar>
-            );
-          })}
+        {series.map((s, i) => {
+          const fill = seriesColors?.[i] || "#8884d8";
+          return (
+            <Bar
+              key={s}
+              dataKey={s}
+              fill={fill}
+              stackId={isStacked ? "a" : undefined}
+              name={displayNames[i]?.trim() ? displayNames[i] : s}
+            >
+              {series.length === 1 && legend.segmentColorEnabled &&
+                rows.map((row, idx) => {
+                  const categoryKey = String(row?.[xKey] ?? "");
+                  const segmentRef = segmentColorRefs?.[categoryKey];
+                  const overrideColor =
+                    (typeof segmentRef === "number"
+                      ? themeColors[segmentRef]
+                      : segmentColors?.[categoryKey]) || fill;
+                  return <Cell key={`${categoryKey}-${idx}`} fill={overrideColor} />;
+                })}
+            </Bar>
+          );
+        })}
       </BarChart>
     </ResponsiveContainer>
   );

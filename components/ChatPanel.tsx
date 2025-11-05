@@ -9,34 +9,53 @@ export default function ChatPanel({
   setInput,
   onSend,
   hasDataset,
+  isSending,
 }: {
   messages: Msg[];
   input: string;
   setInput: (v: string) => void;
   onSend: () => void;
   hasDataset: boolean;
+  isSending: boolean;
 }) {
   const [visibleMessage, setVisibleMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatHistoryRef = useRef<HTMLDivElement>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (messages.length > 0) {
       const latest = messages[messages.length - 1];
       if (latest.role === "assistant" || latest.role === "system") {
-        setVisibleMessage(latest.content);
-        const timer = setTimeout(() => setVisibleMessage(null), 3000);
-        return () => clearTimeout(timer);
+        const rafId = requestAnimationFrame(() => {
+          if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = null;
+          }
+          setVisibleMessage(latest.content);
+          toastTimerRef.current = setTimeout(() => {
+            setVisibleMessage(null);
+            toastTimerRef.current = null;
+          }, 3000);
+        });
+        return () => {
+          cancelAnimationFrame(rafId);
+          if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = null;
+          }
+        };
       }
     }
+    return undefined;
   }, [messages]);
 
   useEffect(() => {
     const ta = textareaRef.current;
     if (ta) {
       ta.style.height = "auto";
-      ta.style.height = ta.scrollHeight + "px";
+      ta.style.height = `${ta.scrollHeight}px`;
     }
   }, [input]);
 
@@ -65,9 +84,7 @@ export default function ChatPanel({
       )}
 
       <div className={styles.inputRow}>
-        <div
-          className={`${styles.inputBox} ${expanded ? styles.flatTop : ""}`}
-        >
+        <div className={`${styles.inputBox} ${expanded ? styles.flatTop : ""}`}>
           <textarea
             ref={textareaRef}
             placeholder="Ask about your data..."
@@ -76,22 +93,30 @@ export default function ChatPanel({
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                onSend();
+                if (!isSending) onSend();
               }
             }}
             className={styles.textarea}
             rows={1}
+            disabled={isSending}
           />
-          <button className={styles.sendBtn} onClick={onSend}>
-            ➤
+          <button
+            className={`${styles.sendBtn} ${isSending ? styles.sendBtnLoading : ""}`}
+            onClick={onSend}
+            disabled={isSending || !input.trim()}
+            aria-label={isSending ? "Sending..." : "Send message"}
+          >
+            {isSending ? <span className={styles.spinner} /> : "➤"}
           </button>
         </div>
 
         <button
-          className={`${styles.toggleBtn} ${expanded ? styles.active + " " + styles.flatTop : ""}`}
+          className={`${styles.toggleBtn} ${
+            expanded ? `${styles.active} ${styles.flatTop}` : ""
+          }`}
           onClick={() => setExpanded((e) => !e)}
         >
-          💬
+          ⤢
         </button>
 
         {visibleMessage && (

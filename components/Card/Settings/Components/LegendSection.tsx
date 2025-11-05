@@ -32,7 +32,7 @@ export default function LegendSection({
 }: Props) {
   const { themeColors } = useTheme();
   const legend = card.settings.legend;
-  const series = card.data.series || [];
+  const series = card.data.series;
   const normalizedType = chartType;
   const segmentColorsEnabled =
     normalizedType === "pie" ? true : legend.segmentColorEnabled ?? false;
@@ -98,7 +98,9 @@ export default function LegendSection({
                   value={legend.seriesDisplayNames?.[i] || ""}
                   onChange={(e) =>
                     onUpdate((draft) => {
-                      const names = [...(draft.settings.legend.seriesDisplayNames || [])];
+                      const names: string[] = [
+                        ...(draft.settings.legend.seriesDisplayNames ?? []),
+                      ];
                       names[i] = e.target.value;
                       draft.settings.legend.seriesDisplayNames = names;
                     })
@@ -111,8 +113,12 @@ export default function LegendSection({
                 selectedRef={legend.seriesColorRefs?.[i]}
                 onSelect={(idx) =>
                   onUpdate((draft) => {
-                    const refs = [...(draft.settings.legend.seriesColorRefs || [])];
-                    const cols = [...(draft.settings.legend.seriesColors || [])];
+                    const refs: Array<number | undefined> = [
+                      ...(draft.settings.legend.seriesColorRefs ?? []),
+                    ];
+                    const cols: Array<string | undefined> = [
+                      ...(draft.settings.legend.seriesColors ?? []),
+                    ];
                     refs[i] = idx;
                     cols[i] = themeColors[idx];
                     draft.settings.legend.seriesColorRefs = refs;
@@ -121,9 +127,13 @@ export default function LegendSection({
                 }
                 onCustom={(color) =>
                   onUpdate((draft) => {
-                    const refs = [...(draft.settings.legend.seriesColorRefs || [])];
-                    const cols = [...(draft.settings.legend.seriesColors || [])];
-                    refs[i] = undefined as any;
+                    const refs: Array<number | undefined> = [
+                      ...(draft.settings.legend.seriesColorRefs ?? []),
+                    ];
+                    const cols: Array<string | undefined> = [
+                      ...(draft.settings.legend.seriesColors ?? []),
+                    ];
+                    refs[i] = undefined;
                     cols[i] = color;
                     draft.settings.legend.seriesColorRefs = refs;
                     draft.settings.legend.seriesColors = cols;
@@ -189,15 +199,27 @@ export default function LegendSection({
                 onSelect={(idx) =>
                   onUpdate((draft) => {
                     ensureSegmentColors(draft, segmentCategories, themeColors, avoidColors);
-                    draft.settings.legend.segmentColorRefs![category] = idx;
-                    delete draft.settings.legend.segmentColors![category];
+                    const refs =
+                      draft.settings.legend.segmentColorRefs ??
+                      (draft.settings.legend.segmentColorRefs = {});
+                    const colors =
+                      draft.settings.legend.segmentColors ??
+                      (draft.settings.legend.segmentColors = {});
+                    refs[category] = idx;
+                    delete colors[category];
                   })
                 }
                 onCustom={(color) =>
                   onUpdate((draft) => {
                     ensureSegmentColors(draft, segmentCategories, themeColors, avoidColors);
-                    delete draft.settings.legend.segmentColorRefs![category];
-                    draft.settings.legend.segmentColors![category] = color;
+                    const refs =
+                      draft.settings.legend.segmentColorRefs ??
+                      (draft.settings.legend.segmentColorRefs = {});
+                    const colors =
+                      draft.settings.legend.segmentColors ??
+                      (draft.settings.legend.segmentColors = {});
+                    delete refs[category];
+                    colors[category] = color;
                   })
                 }
               />

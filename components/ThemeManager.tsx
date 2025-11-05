@@ -11,6 +11,10 @@ export default function ThemeManager() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setLocalColors([...themeColors]);
+  }, [themeColors]);
+
   // click-outside handler
   useEffect(() => {
     function handleClick(e: MouseEvent) {

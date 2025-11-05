@@ -1,5 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { Rnd } from "react-rnd";
 import { useTheme } from "@/context/ThemeContext";
 import type { Card } from "@/types";
@@ -12,12 +18,16 @@ export default function CardContainer({
   setSelectedId,
   onChange,
   onDelete,
+  allowedTables,
+  tableNameMap,
 }: {
   card: Card;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   onChange: (next: Card) => void;
   onDelete: (id: string) => void;
+  allowedTables: string[];
+  tableNameMap: Record<string, string>;
 }) {
   const isSelected = selectedId === card.id;
   const [isInteracting, setIsInteracting] = useState(false);
@@ -28,32 +38,88 @@ export default function CardContainer({
       ? themeColors[card.settings.titleBackground.bgColorRef]
       : card.settings.titleBackground.bgColor || "#fff";
 
-  const defaultMinSize = card.kind === "measure"
-    ? { width: 200, height: 120 }
-    : { width: 320, height: 220 };
+  type Size = { width: number; height: number };
 
-  const [minSize, setMinSize] = useState(defaultMinSize);
+  const defaultMinSize = useMemo<Size>(
+    () =>
+      card.kind === "measure"
+        ? { width: 200, height: 120 }
+        : { width: 320, height: 220 },
+    [card.kind],
+  );
+
+  const [customMinSize, setCustomMinSize] = useState<{
+    cardId: string;
+    size: Size;
+  } | null>(null);
+  const layoutFallback = useMemo(
+    () => ({
+      x: 240,
+      y: 180,
+      width: card.kind === "measure" ? 320 : 420,
+      height: card.kind === "measure" ? 220 : 320,
+    }),
+    [card.kind],
+  );
+  const layout = card.layout ?? layoutFallback;
 
   useEffect(() => {
-    setMinSize(defaultMinSize);
-  }, [card.id]);
+    if (!card.layout) {
+      onChange({ ...card, layout: layoutFallback });
+    }
+  }, [card, layoutFallback, onChange]);
 
-  const handleMeasureMinSize = useCallback((next: { width: number; height: number }) => {
-    setMinSize((prev) => {
+  const minSize = useMemo<Size>(() => {
+    if (customMinSize?.cardId === card.id) {
+      const width = Math.max(defaultMinSize.width, customMinSize.size.width);
+      const height = Math.max(defaultMinSize.height, customMinSize.size.height);
+      return { width, height };
+    }
+    return defaultMinSize;
+  }, [card.id, customMinSize, defaultMinSize]);
+
+  const handleMeasureMinSize = useCallback(
+    (next: { width: number; height: number }) => {
       const width = Math.max(next.width, defaultMinSize.width);
       const height = Math.max(next.height, defaultMinSize.height);
-      if (Math.abs(prev.width - width) < 2 && Math.abs(prev.height - height) < 2) {
-        return prev;
+      setCustomMinSize((prev) => {
+        const isSameCard = prev?.cardId === card.id;
+        const prevSize = isSameCard ? prev.size : undefined;
+        if (prevSize && Math.abs(prevSize.width - width) < 2 && Math.abs(prevSize.height - height) < 2) {
+          return prev;
+        }
+        return {
+          cardId: card.id,
+          size: { width, height },
+        };
+      });
+    },
+    [card.id, defaultMinSize.height, defaultMinSize.width],
+  );
+
+  const updateLayout = useCallback(
+    (partial: Partial<Card["layout"]>) => {
+      const currentLayout = card.layout ?? layoutFallback;
+      const nextLayout = { ...currentLayout, ...partial };
+      if (
+        currentLayout.x === nextLayout.x &&
+        currentLayout.y === nextLayout.y &&
+        currentLayout.width === nextLayout.width &&
+        currentLayout.height === nextLayout.height
+      ) {
+        return;
       }
-      return { width, height };
-    });
-  }, [defaultMinSize.width, defaultMinSize.height]);
+      onChange({ ...card, layout: nextLayout });
+    },
+    [card, layoutFallback, onChange],
+  );
 
 
   return (
     <>
       <Rnd
-        default={{ x: 240, y: 180, width: 420, height: 320 }}
+        position={{ x: layout.x, y: layout.y }}
+        size={{ width: layout.width, height: layout.height }}
         bounds="window"
         dragHandleClassName="drag-handle"
         enableResizing={{
@@ -72,19 +138,26 @@ export default function CardContainer({
           setIsInteracting(true);
           document.body.style.userSelect = "none";
         }}
-        onDragStop={() => {
+        onDragStop={(_event, data) => {
           document.body.style.userSelect = "auto";
           setTimeout(() => setIsInteracting(false), 120);
+          updateLayout({ x: data.x, y: data.y });
         }}
         onResizeStart={() => {
           setIsInteracting(true);
           document.body.style.userSelect = "none";
         }}
-        onResizeStop={() => {
+        onResizeStop={(_event, _direction, ref, _delta, position) => {
           document.body.style.userSelect = "auto";
           setTimeout(() => setIsInteracting(false), 120);
+          updateLayout({
+            width: ref.offsetWidth,
+            height: ref.offsetHeight,
+            x: position.x,
+            y: position.y,
+          });
         }}
-        onClick={(e) => {
+        onClick={(e: ReactMouseEvent<HTMLDivElement>) => {
           e.stopPropagation();
           if (isInteracting) return;
           setSelectedId(isSelected ? null : card.id);
@@ -110,7 +183,13 @@ export default function CardContainer({
       </Rnd>
 
       {isSelected && (
-        <CardSettings card={card} onChange={onChange} onDelete={() => onDelete(card.id)} />
+        <CardSettings
+          card={card}
+          onChange={onChange}
+          onDelete={() => onDelete(card.id)}
+          allowedTables={allowedTables}
+          tableNameMap={tableNameMap}
+        />
       )}
     </>
   );

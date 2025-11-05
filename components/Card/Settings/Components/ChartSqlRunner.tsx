@@ -1,9 +1,27 @@
 "use client";
 import { useState, useEffect } from "react";
-import { runChartSQL } from "@/lib/chartSqlHelpers";
 import styles from "../CardSettings.module.css";
 import type { Card } from "@/types";
 import { ensureSeriesDisplayNames, ensureSegmentColors } from "./settingsUtils";
+import { validateSqlAgainstTables, rewriteSqlTables } from "@/lib/sqlValidation";
+
+type DataRow = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const toRowsArray = (value: unknown): DataRow[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => (isRecord(entry) ? entry : {}))
+    .map((entry) => ({ ...entry }));
+};
+
+const getRowsFromResult = (result: unknown): DataRow[] =>
+  isRecord(result) ? toRowsArray(result.rows) : [];
+
+const getErrorFromResult = (result: unknown): string | undefined =>
+  isRecord(result) && typeof result.error === "string" ? result.error : undefined;
 
 type ChartCard = Extract<Card, { kind: "chart" }>;
 
@@ -11,9 +29,17 @@ type Props = {
   card: ChartCard;
   onChange: (next: Card) => void;
   themeColors: string[];
+  allowedTables: string[];
+  tableNameMap: Record<string, string>;
 };
 
-export default function ChartSqlRunner({ card, onChange, themeColors }: Props) {
+export default function ChartSqlRunner({
+  card,
+  onChange,
+  themeColors,
+  allowedTables,
+  tableNameMap,
+}: Props) {
   const [draft, setDraft] = useState(card.settings.sql.code || "");
   const [isRunning, setIsRunning] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -25,27 +51,75 @@ export default function ChartSqlRunner({ card, onChange, themeColors }: Props) {
 
   const run = async () => {
     setIsRunning(true);
-    const result = await runChartSQL(draft);
-    setIsRunning(false);
-    if (result.error) {
+    const validation = validateSqlAgainstTables(draft, allowedTables);
+    if (!validation.ok) {
       setStatus("error");
+      setIsRunning(false);
+      window.alert(validation.message);
       return;
     }
 
-    setStatus("success");
-    const rows = result.rows || [];
-    const keys = rows[0] ? Object.keys(rows[0]) : [];
-    const xKey = keys[0];
-    const series = keys.slice(1).filter((k) => typeof rows[0]?.[k] === "number");
+    const tableIds = validation.tables
+      .map((name) => tableNameMap[name.toLowerCase()])
+      .filter((id): id is string => Boolean(id));
+    if (tableIds.length !== validation.tables.length) {
+      setStatus("error");
+      setIsRunning(false);
+      window.alert("SQL references an unknown table.");
+      return;
+    }
 
-    const copy: Card = JSON.parse(JSON.stringify(card));
+    const executableSql = rewriteSqlTables(draft, tableNameMap);
+
+    let rawResult: unknown;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_DATA_ENGINE_API}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: executableSql }),
+      });
+      rawResult = await res.json();
+    } catch (error) {
+      console.error("SQL error:", error);
+      setStatus("error");
+      setIsRunning(false);
+      window.alert("SQL execution failed.");
+      return;
+    } finally {
+      setIsRunning(false);
+    }
+
+    const resultError = getErrorFromResult(rawResult);
+    if (resultError) {
+      setStatus("error");
+      window.alert(resultError || "SQL error");
+      return;
+    }
+
+    const rows = getRowsFromResult(rawResult);
+    if (!rows.length) {
+      setStatus("error");
+      window.alert("Query returned no rows.");
+      return;
+    }
+    setStatus("success");
+    const firstRow = rows[0] ?? {};
+    const keys = Object.keys(firstRow);
+    const xKey = keys[0];
+    const series = keys.slice(1).filter((k) => {
+      const value = (firstRow as Record<string, unknown>)[k];
+      return typeof value === "number";
+    });
+
+    const copy: ChartCard = JSON.parse(JSON.stringify(card)) as ChartCard;
     copy.settings.sql.code = draft;
-    (copy as any).data.rows = rows;
-    (copy as any).data.xKey = xKey;
-    (copy as any).data.series = series;
+    copy.data.rows = rows;
+    copy.data.xKey = xKey;
+    copy.data.series = series;
+    copy.sourceTables = tableIds;
     ensureSeriesDisplayNames(copy, series);
 
-    const categories = rows.map((row) => String(row[xKey]));
+    const categories = rows.map((row) => String(row[xKey] ?? ""));
     const pieResult = copy.settings.graph.chartType === "pie";
     const avoid = (() => {
       const bg = copy.settings.titleBackground.bgColorRef !== undefined

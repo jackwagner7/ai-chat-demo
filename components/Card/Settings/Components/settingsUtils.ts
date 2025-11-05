@@ -1,7 +1,7 @@
 import { generatePalette } from "@/lib/chartHelpers";
-import type { Card } from "@/types";
+import type { ChartCard } from "@/types";
 
-export function ensureSeriesDisplayNames(target: Card, series: string[]) {
+export function ensureSeriesDisplayNames(target: ChartCard, series: string[]) {
   const legend = target.settings.legend;
   const existing = legend.seriesDisplayNames || [];
   if (existing.length === series.length) return;
@@ -10,7 +10,7 @@ export function ensureSeriesDisplayNames(target: Card, series: string[]) {
 }
 
 export function ensureSegmentColors(
-  target: Card,
+  target: ChartCard,
   categories: string[],
   themePalette: string[],
   avoidColors: string[],
@@ -68,7 +68,7 @@ export function ensureSegmentColors(
 
     const themeOption = themeCandidates.find(({ idx }) => !usedThemeIndices.has(idx));
     if (themeOption) {
-      refs[key] = themeOption.idx as any;
+      refs[key] = themeOption.idx;
       delete colors[key];
       usedThemeIndices.add(themeOption.idx);
       return;

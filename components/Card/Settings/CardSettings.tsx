@@ -21,9 +21,17 @@ type CardSettingsProps = {
   card: Card;
   onChange: (next: Card) => void;
   onDelete: () => void;
+  allowedTables: string[];
+  tableNameMap: Record<string, string>;
 };
 
-export default function CardSettings({ card, onChange, onDelete }: CardSettingsProps) {
+export default function CardSettings({
+  card,
+  onChange,
+  onDelete,
+  allowedTables,
+  tableNameMap,
+}: CardSettingsProps) {
   const { themeColors } = useTheme();
 
   const backgroundColor =
@@ -75,37 +83,53 @@ export default function CardSettings({ card, onChange, onDelete }: CardSettingsP
   };
 
   const isChart = card.kind === "chart";
-  const chartSeriesCount = isChart ? card.data.series.length : 0;
-  const normalizedChartType = isChart
-    ? card.settings.graph.chartType === "stackedbar"
+  const chartCard = isChart ? card : undefined;
+  const legendSettings = chartCard?.settings.legend;
+  const chartId = chartCard?.id ?? "";
+  const chartXKey = chartCard?.data.xKey;
+  const chartRows = chartCard?.data.rows ?? [];
+  const chartSeries = chartCard?.data.series ?? [];
+  const chartSeriesCount = chartSeries.length;
+  const chartSeriesKey = chartSeries.join("|");
+  const normalizedChartType = chartCard
+    ? chartCard.settings.graph.chartType === "stackedbar"
       ? "bar"
-      : (card.settings.graph.chartType as "line" | "bar" | "pie")
+      : (chartCard.settings.graph.chartType as "line" | "bar" | "pie")
     : undefined;
-  const currentBarLayout = isChart
-    ? card.settings.graph.barLayout || (card.settings.graph.chartType === "stackedbar" ? "stacked" : "grouped")
+  const currentBarLayout = chartCard
+    ? chartCard.settings.graph.barLayout ||
+      (chartCard.settings.graph.chartType === "stackedbar" ? "stacked" : "grouped")
     : "grouped";
   const isStackedLayout = normalizedChartType === "bar" && currentBarLayout === "stacked";
   const canUsePie = !isChart || (chartSeriesCount <= 1 && !isStackedLayout);
-  const segmentToggleAvailable = normalizedChartType === "bar" && chartSeriesCount <= 1;
-  const segmentColorsEnabled = isChart
+  const segmentToggleAvailable = chartCard
+    ? normalizedChartType === "bar" && chartSeriesCount <= 1
+    : false;
+  const segmentColorsEnabled = chartCard
     ? normalizedChartType === "pie"
       ? true
-      : card.settings.legend.segmentColorEnabled ?? false
+      : legendSettings?.segmentColorEnabled ?? false
     : false;
   const shouldUseSegmentColors =
     normalizedChartType === "pie" ||
     (segmentToggleAvailable && segmentColorsEnabled);
 
   const segmentCategories = useMemo(() => {
-    if (!isChart || !card.data.xKey) return [];
-    const key = card.data.xKey;
+    if (!chartCard || !chartXKey) return [];
     return Array.from(
-      new Set((card.data.rows || []).map((row: any) => String(row[key]))),
+      new Set(
+        chartRows.map((row) => {
+          const value = row[chartXKey];
+          if (value === null || value === undefined) return "";
+          return String(value);
+        }),
+      ),
     );
-  }, [isChart, card.data.xKey, card.data.rows]);
+  }, [chartId, chartXKey, chartRows]);
+  const segmentCategoriesKey = segmentCategories.join("|");
 
-  const segmentColorRefs = isChart ? card.settings.legend.segmentColorRefs || {} : {};
-  const segmentColorMap = isChart ? card.settings.legend.segmentColors || {} : {};
+  const segmentColorRefs = legendSettings?.segmentColorRefs || {};
+  const segmentColorMap = legendSettings?.segmentColors || {};
   const segmentKeys = new Set<string>([
     ...Object.keys(segmentColorRefs),
     ...Object.keys(segmentColorMap),
@@ -128,44 +152,46 @@ export default function CardSettings({ card, onChange, onDelete }: CardSettingsP
   });
 
   const needsSegmentSync =
-    isChart &&
-    shouldUseSegmentColors &&
-    (hasMissingSegments || hasStaleSegments || hasInvalidRefs);
+    Boolean(
+      chartCard &&
+      shouldUseSegmentColors &&
+      (hasMissingSegments || hasStaleSegments || hasInvalidRefs),
+    );
 
   useEffect(() => {
-    if (!isChart) return;
-    const currentLen = card.settings.legend.seriesDisplayNames?.length ?? 0;
-    if (currentLen === card.data.series.length) return;
+    if (!chartCard) return;
+    const currentLen = legendSettings?.seriesDisplayNames?.length ?? 0;
+    if (currentLen === chartSeries.length) return;
     updateCard((draft) => {
       if (draft.kind === "chart") {
         ensureSeriesDisplayNames(draft, draft.data.series);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.kind, card.data.series, card.settings.legend.seriesDisplayNames?.length]);
+  }, [chartId, chartSeriesKey, legendSettings?.seriesDisplayNames?.length]);
 
   useEffect(() => {
-    if (!isChart) return;
+    if (!chartCard) return;
     if (normalizedChartType === "bar" && chartSeriesCount <= 1 && currentBarLayout === "stacked") {
       updateCard((draft) => {
         if (draft.kind === "chart") draft.settings.graph.barLayout = "grouped";
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChart, normalizedChartType, chartSeriesCount, currentBarLayout]);
+  }, [chartId, normalizedChartType, chartSeriesCount, currentBarLayout]);
 
   useEffect(() => {
-    if (!isChart) return;
-    if (normalizedChartType === "bar" && chartSeriesCount > 1 && card.settings.legend.segmentColorEnabled) {
+    if (!chartCard) return;
+    if (normalizedChartType === "bar" && chartSeriesCount > 1 && legendSettings?.segmentColorEnabled) {
       updateCard((draft) => {
         if (draft.kind === "chart") draft.settings.legend.segmentColorEnabled = false;
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChart, normalizedChartType, chartSeriesCount]);
+  }, [chartId, normalizedChartType, chartSeriesCount]);
 
   useEffect(() => {
-    if (!isChart || normalizedChartType !== "pie" || canUsePie) return;
+    if (!chartCard || normalizedChartType !== "pie" || canUsePie) return;
     updateCard((draft) => {
       if (draft.kind === "chart") {
         draft.settings.graph.chartType = "bar";
@@ -173,20 +199,20 @@ export default function CardSettings({ card, onChange, onDelete }: CardSettingsP
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChart, normalizedChartType, canUsePie]);
+  }, [chartId, normalizedChartType, canUsePie]);
 
   useEffect(() => {
-    if (!isChart) return;
-    if (normalizedChartType === "pie" && !card.settings.legend.segmentColorEnabled) {
+    if (!chartCard) return;
+    if (normalizedChartType === "pie" && !legendSettings?.segmentColorEnabled) {
       updateCard((draft) => {
         if (draft.kind === "chart") draft.settings.legend.segmentColorEnabled = true;
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChart, normalizedChartType]);
+  }, [chartId, normalizedChartType]);
 
   useEffect(() => {
-    if (!needsSegmentSync) return;
+    if (!needsSegmentSync || !chartCard) return;
     updateCard((draft) => {
       if (draft.kind === "chart") {
         ensureSegmentColors(draft, segmentCategories, themeColors, avoidColors);
@@ -195,8 +221,8 @@ export default function CardSettings({ card, onChange, onDelete }: CardSettingsP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     needsSegmentSync,
-    card.id,
-    segmentCategories.join("|"),
+    chartId,
+    segmentCategoriesKey,
     themeColors,
     backgroundColor,
   ]);
@@ -307,18 +333,34 @@ export default function CardSettings({ card, onChange, onDelete }: CardSettingsP
         {card.kind === "measure" ? (
           <SqlRunner
             code={card.settings.sql.code || ""}
-            onRunSuccess={(rows, newSql) =>
+            allowedTables={allowedTables}
+            tableNameMap={tableNameMap}
+            onRunSuccess={(rows, newSql, tables) =>
               updateCard((draft) => {
-                const value = rows?.[0] ? Object.values(rows[0])[0] : "";
+                const firstRow = rows[0];
+                const firstValue = firstRow ? Object.values(firstRow)[0] : undefined;
+                const nextValue: string | number =
+                  typeof firstValue === "number"
+                    ? firstValue
+                    : String(
+                        firstValue === undefined || firstValue === null ? "" : firstValue,
+                      );
                 draft.settings.sql.code = newSql;
                 if (draft.kind === "measure") {
-                  (draft as any).data.value = String(value);
+                  draft.data.value = nextValue;
                 }
+                draft.sourceTables = tables;
               })
             }
           />
         ) : (
-          <ChartSqlRunner card={card} onChange={onChange} themeColors={themeColors} />
+          <ChartSqlRunner
+            card={card}
+            onChange={onChange}
+            themeColors={themeColors}
+            allowedTables={allowedTables}
+            tableNameMap={tableNameMap}
+          />
         )}
       </SettingsSection>
     </div>

@@ -33,10 +33,10 @@ export interface Chart {
   color?: string;
   xKey?: string;
   series: string[];
-  seriesColors?: string[];
-  seriesColorRefs?: number[];        // 🆕 theme index references
+  seriesColors?: Array<string | undefined>;
+  seriesColorRefs?: Array<number | undefined>;        // 🆕 theme index references
   seriesDisplayNames?: string[];     // 🆕 editable legend names
-  data: Record<string, any>[];
+  data: Record<string, unknown>[];
   code: string;
 
   // Existing fields

@@ -5,6 +5,13 @@ export type CardKind = "measure" | "chart";
 export type AlignX = "left" | "center" | "right";
 export type AlignY = "top" | "center" | "bottom";
 
+export interface CardLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface TitleBackgroundSettings {
   title: string;
   titleSize?: number;
@@ -49,10 +56,10 @@ export interface AxesSettings {
 export interface LegendSettings {
   legendSize?: number;
   seriesDisplayNames?: string[];
-  seriesColorRefs?: number[];
-  seriesColors?: string[];
-  segmentColorRefs?: Record<string, number>;
-  segmentColors?: Record<string, string>;
+  seriesColorRefs?: Array<number | undefined>;
+  seriesColors?: Array<string | undefined>;
+  segmentColorRefs?: Record<string, number | undefined>;
+  segmentColors?: Record<string, string | undefined>;
   segmentColorEnabled?: boolean;
 }
 
@@ -67,6 +74,8 @@ export interface MeasureCard {
     measureAppearance: MeasureAppearanceSettings;
     sql: SqlSettings;
   };
+  layout: CardLayout;
+  sourceTables?: string[];
   ui?: {
     settingsOpen?: Record<string, boolean>;
   };
@@ -76,7 +85,7 @@ export interface ChartCard {
   id: string;
   kind: "chart";
   data: {
-    rows: Record<string, any>[];
+    rows: Record<string, unknown>[];
     xKey?: string;
     series: string[];
   };
@@ -87,6 +96,8 @@ export interface ChartCard {
     legend: LegendSettings;
     sql: SqlSettings;
   };
+  layout: CardLayout;
+  sourceTables?: string[];
   ui?: {
     settingsOpen?: Record<string, boolean>;
   };
@@ -94,8 +105,35 @@ export interface ChartCard {
 
 export type Card = MeasureCard | ChartCard;
 
+export interface StoredDataset {
+  tableId: string;
+  displayName: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  expanded?: boolean;
+  sourceFilename?: string;
+}
+
+export interface UploadedTableInfo {
+  tableId: string;
+  displayName: string;
+  columns: string[];
+  sourceFilename?: string;
+}
+
+export interface PreviewState {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  tableId?: string;
+  sourceFilename?: string;
+}
+
 export interface CardsReport {
   version: "cards-v1";
   themeColors: string[];
   cards: Card[];
+  uploadedTables?: UploadedTableInfo[];
+  datasets?: StoredDataset[];
+  preview?: PreviewState;
+  schema?: string;
 }

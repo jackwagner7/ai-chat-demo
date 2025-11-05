@@ -43,13 +43,94 @@
   position: relative;
   z-index: 3; /* stays on top */
   padding: 1rem;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
   font-weight: 500;
   color: #1f2937;
   background: white;
   cursor: pointer;
   user-select: none;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.headerTitle {
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerSubtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deleteButton {
+  border: none;
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.deleteButton:hover {
+  background: rgba(220, 38, 38, 0.18);
+  color: #7f1d1d;
+}
+
+.actionArea {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cancelButton,
+.confirmDeleteButton {
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cancelButton {
+  background: rgba(107, 114, 128, 0.12);
+  color: #374151;
+}
+
+.cancelButton:hover {
+  background: rgba(107, 114, 128, 0.2);
+}
+
+.confirmDeleteButton {
+  background: rgba(220, 38, 38, 0.18);
+  color: #7f1d1d;
+}
+
+.confirmDeleteButton:hover {
+  background: rgba(185, 28, 28, 0.25);
+  color: #991b1b;
 }
 
 /* Add this to hide scroll-through bleed */

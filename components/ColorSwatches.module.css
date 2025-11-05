@@ -36,7 +36,7 @@
   transform: scale(1.05);
 }
 
-/* ✅ Selected state — black ring + white halo */
+/* ✅ Selected state (black ring + white halo) */
 .swatchActive {
   border-color: transparent;
 }
@@ -79,7 +79,7 @@
   background: #ddd;
 }
 
-/* 🟣 When a custom colour is active */
+/* ✨ When a custom colour is active */
 .customActive {
   border: 2px solid #0078d4;
   box-shadow: 0 0 0 2px #fff;

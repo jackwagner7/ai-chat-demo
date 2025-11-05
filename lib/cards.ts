@@ -15,6 +15,12 @@ export function measureToCard(m: Measure): MeasureCard {
     data: {
       value: m.value,
     },
+    layout: {
+      x: 0,
+      y: 0,
+      width: 320,
+      height: 220,
+    },
     settings: {
       titleBackground: {
         title: m.title,
@@ -47,6 +53,12 @@ export function chartToCard(c: Chart): ChartCard {
       rows: c.data,
       xKey: c.xKey,
       series: c.series,
+    },
+    layout: {
+      x: 0,
+      y: 0,
+      width: 420,
+      height: 320,
     },
     settings: {
       titleBackground: {
@@ -104,4 +116,3 @@ export function deserializeReport(report: CardsReport): { cards: Card[]; themeCo
     themeColors: report.themeColors || [],
   };
 }
-
