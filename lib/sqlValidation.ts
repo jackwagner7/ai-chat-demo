@@ -16,7 +16,6 @@ const DISALLOWED_KEYWORDS = [
   "call",
   "execute",
   "merge",
-  "replace",
   "truncate",
 ];
 
@@ -82,11 +81,15 @@ function detectCteNames(text: string): Set<string> {
 export function extractReferencedTables(sql: string): string[] {
   if (!sql) return [];
   const cteNames = detectCteNames(sql);
+  // Allow set-returning functions like UNNEST in FROM/JOIN without
+  // treating them as table references.
+  const setReturningFuncs = new Set(["unnest"]);
   const matches = [...sql.matchAll(TABLE_PATTERN)];
   const tables = matches
     .map((match) => normalizeIdentifier(match[1] ?? ""))
     .filter((name) => name.length > 0)
-    .filter((name) => !cteNames.has(name.toLowerCase()));
+    .filter((name) => !cteNames.has(name.toLowerCase()))
+    .filter((name) => !setReturningFuncs.has(name.toLowerCase()));
   return Array.from(new Set(tables));
 }
 

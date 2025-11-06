@@ -195,8 +195,8 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
   if (isPieLike) {
     const s = series[0];
     return (
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+      <ResponsiveContainer width="100%" height="100%" style={{ background: "transparent" }}>
+        <PieChart style={{ background: "transparent" }}>
           <Tooltip />
           <Legend
             verticalAlign="top"
@@ -235,8 +235,8 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
 
   if (isLineLike) {
     return (
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={chartMargins}>
+      <ResponsiveContainer width="100%" height="100%" style={{ background: "transparent" }}>
+        <LineChart data={rows} margin={chartMargins} style={{ background: "transparent" }}>
           <XAxis dataKey={xKey} tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
             {card.settings.axes.xLabel ? (
               <Label
@@ -273,6 +273,7 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
               stroke={seriesColors?.[i] || "#8884d8"}
               strokeWidth={2}
               dot={false}
+              isAnimationActive={false}
               name={displayNames[i]?.trim() ? displayNames[i] : s}
             />
           ))}
@@ -284,8 +285,8 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
   // default: bar/stackedbar
   const isStacked = isStackedBar;
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={rows} margin={chartMargins}>
+    <ResponsiveContainer width="100%" height="100%" style={{ background: "transparent" }}>
+      <BarChart data={rows} margin={chartMargins} style={{ background: "transparent" }}>
         <XAxis dataKey={xKey} tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
           {card.settings.axes.xLabel ? (
             <Label

@@ -11,6 +11,7 @@ type Props = {
 };
 
 export default function AxesSection({ card, onUpdate }: Props) {
+  const hasAxisTitle = Boolean(card.settings.axes.xLabel?.trim()) || Boolean(card.settings.axes.yLabel?.trim());
   return (
     <div className={styles.sectionBody}>
       <label>
@@ -38,61 +39,65 @@ export default function AxesSection({ card, onUpdate }: Props) {
         />
       </label>
 
-      <div className={styles.sliderLabel}>
-        <div className={styles.sliderHeader}>
-          <span>Axis Title Size (rem)</span>
-          <input
-            type="number"
-            step="0.1"
-            min="0.8"
-            max="2"
-            value={Number(card.settings.axes.axisTitleSize ?? 1).toFixed(1)}
-            onChange={(e) =>
+      {hasAxisTitle && (
+        <>
+          <div className={styles.sliderLabel}>
+            <div className={styles.sliderHeader}>
+              <span>Axis Title Size (rem)</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0.8"
+                max="2"
+                value={Number(card.settings.axes.axisTitleSize ?? 1).toFixed(1)}
+                onChange={(e) =>
+                  onUpdate((draft) => {
+                    draft.settings.axes.axisTitleSize = parseFloat(e.target.value) || 0;
+                  })
+                }
+                className={styles.numeric}
+              />
+            </div>
+            <input
+              type="range"
+              min="0.8"
+              max="2"
+              step="0.1"
+              value={card.settings.axes.axisTitleSize ?? 1}
+              onChange={(e) =>
+                onUpdate((draft) => {
+                  draft.settings.axes.axisTitleSize = Number(e.target.value);
+                })
+              }
+            />
+          </div>
+
+          <ColorSwatches
+            label="Axis Title Colour"
+            selectedRef={card.settings.axes.axisTitleColorRef}
+            onSelect={(idx) =>
               onUpdate((draft) => {
-                draft.settings.axes.axisTitleSize = parseFloat(e.target.value) || 0;
+                draft.settings.axes.axisTitleColorRef = idx;
+                draft.settings.axes.axisTitleColor = undefined;
               })
             }
-            className={styles.numeric}
+            onCustom={(color) =>
+              onUpdate((draft) => {
+                draft.settings.axes.axisTitleColorRef = undefined;
+                draft.settings.axes.axisTitleColor = color;
+              })
+            }
+            disabledRefs={card.settings.titleBackground.bgColorRef !== undefined
+              ? [card.settings.titleBackground.bgColorRef]
+              : undefined}
+            blockedValues={
+              card.settings.titleBackground.bgColor
+                ? [card.settings.titleBackground.bgColor]
+                : undefined
+            }
           />
-        </div>
-        <input
-          type="range"
-          min="0.8"
-          max="2"
-          step="0.1"
-          value={card.settings.axes.axisTitleSize ?? 1}
-          onChange={(e) =>
-            onUpdate((draft) => {
-              draft.settings.axes.axisTitleSize = Number(e.target.value);
-            })
-          }
-        />
-      </div>
-
-      <ColorSwatches
-        label="Axis Title Colour"
-        selectedRef={card.settings.axes.axisTitleColorRef}
-        onSelect={(idx) =>
-          onUpdate((draft) => {
-            draft.settings.axes.axisTitleColorRef = idx;
-            draft.settings.axes.axisTitleColor = undefined;
-          })
-        }
-        onCustom={(color) =>
-          onUpdate((draft) => {
-            draft.settings.axes.axisTitleColorRef = undefined;
-            draft.settings.axes.axisTitleColor = color;
-          })
-        }
-        disabledRefs={card.settings.titleBackground.bgColorRef !== undefined
-          ? [card.settings.titleBackground.bgColorRef]
-          : undefined}
-        blockedValues={
-          card.settings.titleBackground.bgColor
-            ? [card.settings.titleBackground.bgColor]
-            : undefined
-        }
-      />
+        </>
+      )}
 
       <div className={styles.sliderLabel}>
         <div className={styles.sliderHeader}>

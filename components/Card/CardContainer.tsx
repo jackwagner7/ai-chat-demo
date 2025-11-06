@@ -4,6 +4,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { Rnd } from "react-rnd";
@@ -31,11 +32,13 @@ export default function CardContainer({
 }) {
   const isSelected = selectedId === card.id;
   const [isInteracting, setIsInteracting] = useState(false);
+  const [showSettings, setShowSettings] = useState<boolean>(isSelected);
+  const [closingSettings, setClosingSettings] = useState<boolean>(false);
   const { themeColors } = useTheme();
 
   const bg =
     card.settings.titleBackground.bgColorRef !== undefined
-      ? themeColors[card.settings.titleBackground.bgColorRef]
+      ? themeColors[card.settings.titleBackground.bgColorRef] || "#fff"
       : card.settings.titleBackground.bgColor || "#fff";
 
   type Size = { width: number; height: number };
@@ -63,11 +66,14 @@ export default function CardContainer({
   );
   const layout = card.layout ?? layoutFallback;
 
+  const didInitLayout = useRef(false);
   useEffect(() => {
+    if (didInitLayout.current) return;
     if (!card.layout) {
+      didInitLayout.current = true;
       onChange({ ...card, layout: layoutFallback });
     }
-  }, [card, layoutFallback, onChange]);
+  }, [card.id, card.layout, layoutFallback, onChange]);
 
   const minSize = useMemo<Size>(() => {
     if (customMinSize?.cardId === card.id) {
@@ -113,6 +119,68 @@ export default function CardContainer({
     },
     [card, layoutFallback, onChange],
   );
+
+  // Manage slide-in/out visibility so we can animate on close
+  useEffect(() => {
+    if (isSelected) {
+      // Mark sidebar open immediately so other UI (dataset panel) can slide with it
+      document.body.setAttribute("data-settings-sidebar", "open");
+      setClosingSettings(false);
+      setShowSettings(true);
+    } else if (showSettings) {
+      // Start closing: let others slide back while sidebar animates out
+      document.body.removeAttribute("data-settings-sidebar");
+      setClosingSettings(true);
+      const t = setTimeout(() => {
+        setShowSettings(false);
+        setClosingSettings(false);
+      }, 250);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [isSelected, showSettings]);
+
+  // On unmount, ensure attribute is cleared
+  useEffect(() => {
+    return () => {
+      if (document.body.getAttribute("data-settings-sidebar") === "open") {
+        document.body.removeAttribute("data-settings-sidebar");
+      }
+    };
+  }, []);
+
+  // When settings sidebar is visible (card selected), make sure the card
+  // isn’t hidden behind it. Shift left if overlapping the right sidebar.
+  useEffect(() => {
+    if (!isSelected) return;
+    if (typeof window === "undefined") return;
+    const sidebarWidth = 320; // matches CardSettings.module.css
+    const sidebarMargin = 16;
+
+    const viewportWidth = window.innerWidth || 0;
+    const rightLimit = Math.max(0, viewportWidth - sidebarWidth - sidebarMargin);
+    const current = card.layout ?? layoutFallback;
+    const cardRight = current.x + current.width;
+    if (cardRight > rightLimit) {
+      const delta = cardRight - rightLimit;
+      const nextX = Math.max(12, current.x - delta);
+      updateLayout({ x: nextX });
+    }
+    // Re-check on resize while selected
+    const onResize = () => {
+      const vw = window.innerWidth || 0;
+      const rl = Math.max(0, vw - sidebarWidth - sidebarMargin);
+      const cur = card.layout ?? layoutFallback;
+      const cr = cur.x + cur.width;
+      if (cr > rl) {
+        const d = cr - rl;
+        const nx = Math.max(12, cur.x - d);
+        updateLayout({ x: nx });
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [isSelected, card.layout, layoutFallback, updateLayout]);
 
 
   return (
@@ -182,13 +250,14 @@ export default function CardContainer({
         />
       </Rnd>
 
-      {isSelected && (
+      {showSettings && (
         <CardSettings
           card={card}
           onChange={onChange}
           onDelete={() => onDelete(card.id)}
           allowedTables={allowedTables}
           tableNameMap={tableNameMap}
+          closing={closingSettings}
         />
       )}
     </>

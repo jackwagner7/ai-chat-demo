@@ -38,3 +38,13 @@ body {
 body {
   background-color: #e5e7eb; /* same as bg-gray-200 */
 }
+
+/* Remove black focus outlines inside Recharts while preserving accessibility */
+.recharts-wrapper *:focus {
+  outline: none !important;
+}
+
+.recharts-wrapper *:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0, 120, 212, 0.45);
+}

@@ -31,7 +31,8 @@ export default function CardSettings({
   onDelete,
   allowedTables,
   tableNameMap,
-}: CardSettingsProps) {
+  closing = false,
+}: CardSettingsProps & { closing?: boolean }) {
   const { themeColors } = useTheme();
 
   const backgroundColor =
@@ -64,6 +65,14 @@ export default function CardSettings({
     setOpen(card.ui?.settingsOpen ? { ...defaultOpen, ...card.ui.settingsOpen } : defaultOpen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card.id]);
+
+
+  // Defer applying the .open class by a frame so the transition runs
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const toggle = (key: string) => {
     setOpen((prev) => {
@@ -228,7 +237,10 @@ export default function CardSettings({
   ]);
 
   return (
-    <div className={styles.sidebar} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`${styles.sidebar} ${closing ? styles.closing : entered ? styles.open : ""}`}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className={styles.deleteTop}>
         <button
           onClick={() => {

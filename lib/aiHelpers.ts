@@ -1,5 +1,18 @@
 export function stripCodeFences(s: string) {
-  return s.replace(/```(?:sql)?\s*([\s\S]*?)```/gi, "$1").trim();
+  // Remove Markdown triple backtick fences first
+  let out = s.replace(/```(?:sql)?\s*([\s\S]*?)```/gi, "$1").trim();
+
+  // Remove surrounding triple quotes if present: """...""" or '''...'''
+  if ((out.startsWith('"""') && out.endsWith('"""')) || (out.startsWith("'''") && out.endsWith("'''"))) {
+    out = out.slice(3, -3).trim();
+  }
+
+  // Remove single pair of surrounding quotes if the entire block is quoted
+  if ((out.startsWith('"') && out.endsWith('"')) || (out.startsWith("'") && out.endsWith("'"))) {
+    out = out.slice(1, -1).trim();
+  }
+
+  return out;
 }
 
 export function extractBlock(reply: string, tag: "measure" | "chart") {

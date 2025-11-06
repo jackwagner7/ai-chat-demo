@@ -569,10 +569,23 @@ function HomeContent() {
     if (mBlock) {
       const validation = validateSqlAgainstTables(mBlock.code, allowedTableLabels);
       if (!validation.ok) {
+        const kw = validation.message.match(/Keyword \"([^\"]+)\"/i)?.[1];
+        let context = "";
+        if (kw) {
+          const lower = mBlock.code.toLowerCase();
+          const idx = lower.indexOf(kw.toLowerCase());
+          if (idx >= 0) {
+            const start = Math.max(0, idx - 40);
+            const end = Math.min(mBlock.code.length, idx + kw.length + 40);
+            context = mBlock.code.slice(start, end);
+          }
+        }
         setMessages((m) => [
           ...m,
           { role: "system", content: `Measure SQL blocked: ${validation.message}` },
-        ]);
+          { role: "system", content: `SQL (blocked measure): ${mBlock.code}` },
+          ...(context ? [{ role: "system", content: `Context around keyword: ${context}` }] : []),
+        ] as Msg[]);
         return;
       }
       const tableIds = validation.tables
@@ -586,6 +599,11 @@ function HomeContent() {
         return;
       }
       const executableSql = rewriteSqlTables(mBlock.code, tableAliasMap);
+      // Log executed SQL to chat for debugging
+      setMessages((m) => [
+        ...m,
+        { role: "system", content: `SQL (measure): ${executableSql}` },
+      ]);
       const queryRes = await fetch(`${process.env.NEXT_PUBLIC_DATA_ENGINE_API}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -656,10 +674,23 @@ function HomeContent() {
     if (cBlock) {
       const validation = validateSqlAgainstTables(cBlock.code, allowedTableLabels);
       if (!validation.ok) {
+        const kw = validation.message.match(/Keyword \"([^\"]+)\"/i)?.[1];
+        let context = "";
+        if (kw) {
+          const lower = cBlock.code.toLowerCase();
+          const idx = lower.indexOf(kw.toLowerCase());
+          if (idx >= 0) {
+            const start = Math.max(0, idx - 40);
+            const end = Math.min(cBlock.code.length, idx + kw.length + 40);
+            context = cBlock.code.slice(start, end);
+          }
+        }
         setMessages((m) => [
           ...m,
           { role: "system", content: `Chart SQL blocked: ${validation.message}` },
-        ]);
+          { role: "system", content: `SQL (blocked chart): ${cBlock.code}` },
+          ...(context ? [{ role: "system", content: `Context around keyword: ${context}` }] : []),
+        ] as Msg[]);
         return;
       }
       const tableIds = validation.tables
@@ -673,6 +704,11 @@ function HomeContent() {
         return;
       }
       const executableSql = rewriteSqlTables(cBlock.code, tableAliasMap);
+      // Log executed SQL to chat for debugging
+      setMessages((m) => [
+        ...m,
+        { role: "system", content: `SQL (chart): ${executableSql}` },
+      ]);
       const queryRes = await fetch(`${process.env.NEXT_PUBLIC_DATA_ENGINE_API}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -795,6 +831,7 @@ function HomeContent() {
       <CsvUploader
         datasets={datasets}
         setDatasets={setDatasets}
+        isHydrating={!hasHydratedState}
         onUpload={handleCsvUpload}
         onDeleteDataset={handleDatasetDelete}
       />

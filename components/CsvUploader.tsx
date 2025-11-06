@@ -20,6 +20,7 @@ interface CsvUploaderProps {
     sourceFilename?: string;
   }) => void;
   onDeleteDataset?: (dataset: StoredDataset) => Promise<boolean | void> | boolean | void;
+  isHydrating?: boolean;
 }
 
 const formatCellValue = (value: unknown): string => {
@@ -39,9 +40,11 @@ export default function CsvUploader({
   setDatasets,
   onUpload,
   onDeleteDataset,
+  isHydrating,
 }: CsvUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const activeConfirming = useMemo(() => {
     if (!confirming) return null;
     return datasets.some((dataset) => dataset.tableId === confirming) ? confirming : null;
@@ -244,10 +247,27 @@ export default function CsvUploader({
     };
   }, [handleFiles]);
 
+  // Watch for settings sidebar open/close via body attribute
+  useEffect(() => {
+    const body = document.body;
+    const update = () => setSidebarOpen(body.getAttribute("data-settings-sidebar") === "open");
+    update();
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === "attributes" && m.attributeName === "data-settings-sidebar") {
+          update();
+          break;
+        }
+      }
+    });
+    observer.observe(body, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <>
       {dragActive && (
-        <div className={styles.dropOverlay}>
+        <div className={styles.dropOverlay} onClick={(e) => e.stopPropagation()}>
           <div className={styles.dropMessage}>Drop CSV files to upload</div>
         </div>
       )}
@@ -255,22 +275,30 @@ export default function CsvUploader({
       <div
         className={`${styles.panel} ${
           datasets.length === 0 ? styles.centered : styles.docked
-        }`}
+        } ${sidebarOpen ? styles.withSidebar : ""}`}
+        onClick={(e) => e.stopPropagation()}
       >
         {datasets.length === 0 ? (
-          <div className={styles.emptyState}>
-            <h2 className={styles.title}>Upload your first dataset</h2>
-            <label className={styles.addTile}>
-              <span>+</span>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                multiple
-                onChange={handleFileUpload}
-                className={styles.hiddenInput}
-              />
-            </label>
-          </div>
+          isHydrating ? (
+            <div className={styles.spinnerWrap}>
+              <div className={styles.spinner} />
+              <div className={styles.spinnerText}>Loading datasets...</div>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <h2 className={styles.title}>Upload your first dataset</h2>
+              <label className={styles.addTile}>
+                <span>+</span>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  multiple
+                  onChange={handleFileUpload}
+                  className={styles.hiddenInput}
+                />
+              </label>
+            </div>
+          )
         ) : (
           <>
             {datasets.map((dataset, idx) => {
@@ -333,7 +361,11 @@ export default function CsvUploader({
                     </div>
                   </div>
 
-                  {dataset.expanded && (
+                  <div
+                    className={`${styles.previewOuter} ${
+                      dataset.expanded ? styles.expandedY : ""
+                    }`}
+                  >
                     <div className={styles.preview}>
                       <div className={styles.tableWrapper}>
                         <table>
@@ -357,7 +389,7 @@ export default function CsvUploader({
                         </table>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}

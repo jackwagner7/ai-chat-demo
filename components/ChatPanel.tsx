@@ -67,7 +67,7 @@ export default function ChatPanel({
   if (!hasDataset) return null;
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} onClick={(e) => e.stopPropagation()}>
       {expanded && (
         <div ref={chatHistoryRef} className={styles.chatHistory}>
           {messages.map((m, i) => (
