@@ -1,24 +1,24 @@
 /* SettingsShared.module.css */
 
 /* ==========================
-   ⚙️ SIDEBAR CORE
+   Sidebar Core
    ========================== */
 .sidebar {
   position: fixed;
   top: 0;
   right: 0;
-  width: calc(320px * var(--ui-scale, 1));
+  width: var(--settings-sidebar-width);
   height: 100%;
-  background: #fff;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
-  padding: 1.5rem;
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.98), #f6f6f9 60%);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.25);
+  padding: 1.75rem;
   z-index: 999;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   transform: translateX(100%);
-  transition: transform 0.25s ease-in-out;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   will-change: transform;
 }
 
@@ -30,12 +30,93 @@
   transform: translateX(100%);
 }
 
-.sidebar h2 {
-  font-size: 1.3rem;
-  margin-bottom: 0.5rem;
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* --- Inputs & Labels --- */
+/* ==========================
+   Header panel
+   ========================== */
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  background: rgba(14, 18, 34, 0.85);
+  color: #fff;
+  box-shadow: 0 20px 45px rgba(8, 9, 20, 0.35);
+}
+
+.panelEyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: 0;
+  opacity: 0.75;
+}
+
+.panelHeader h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.headerBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.metaList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.5rem 0 0;
+  margin: 0;
+  list-style: none;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.metaItem strong {
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* ==========================
+   Delete CTA
+   ========================== */
+.deleteRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+
+
+/* ==========================
+   Form controls
+   ========================== */
 .sidebar label {
   display: flex;
   flex-direction: column;
@@ -73,7 +154,7 @@
 }
 
 /* ==========================
-   🎚 SLIDERS
+   Slider controls
    ========================== */
 .sliderLabel {
   display: flex;
@@ -99,7 +180,7 @@
 }
 
 /* ==========================
-   🧭 ALIGNMENT
+   Alignment buttons
    ========================== */
 .alignmentGroup {
   display: flex;
@@ -126,13 +207,18 @@
   padding: 0.4rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  background: #f8f8f8;
+  background: #fff;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .alignBtn:hover {
-  background: #eee;
+  background: rgba(0, 120, 212, 0.12);
+}
+
+.alignBtn:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
 }
 
 .alignBtn.active {
@@ -147,9 +233,8 @@
   color: #fff;
 }
 
-
 /* ==========================
-   💾 SQL RUNNER
+   SQL Runner
    ========================== */
 .sqlLabel {
   font-weight: 600;
@@ -209,45 +294,27 @@
 }
 
 /* ==========================
-   ❌ DELETE
+   Sections
    ========================== */
-.deleteTop {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.5rem;
+.sectionCard {
+  border-radius: 18px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 16, 40, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-.deleteIconBtn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #d9534f;
-  padding: 0.25rem;
-  transition: transform 0.15s ease, color 0.15s ease;
-}
-
-.deleteIconBtn:hover {
-  color: #ff6b6b;
-  transform: scale(1.1);
-}
-
-/* ==========================
-   📂 ACCORDION
-   ========================== */
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.5rem 0;
+  font-size: 0.92rem;
+  padding: 0.9rem 1.15rem;
   cursor: pointer;
-  transition: color 0.2s ease;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.sectionHeader:hover {
-  color: #0078d4;
+  background: linear-gradient(90deg, rgba(0, 120, 212, 0.08), rgba(0, 120, 212, 0));
 }
 
 .chevron {
@@ -260,7 +327,16 @@
 }
 
 .sectionBody {
-  padding: 0.5rem 0 0.75rem 0.75rem;
-  border-left: 2px solid rgba(0, 0, 0, 0.05);
-  margin-bottom: 0.75rem;
+  padding: 0.9rem 1.15rem 1.25rem;
+  background: #fff;
 }
+
+.sectionCard summary::-webkit-details-marker {
+  display: none;
+}
+
+
+
+
+
+

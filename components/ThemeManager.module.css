@@ -13,7 +13,7 @@
 
 .trayShift {
   right: calc(
-    1.5rem + 48px + 1rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1))
+    1.5rem + 48px + 1rem + var(--settings-sidebar-width) + (16px * var(--ui-scale, 1))
   );
 }
 
@@ -166,7 +166,7 @@
 }
 
 .buttonShift {
-  right: calc(1.5rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1)));
+  right: calc(1.5rem + var(--settings-sidebar-width) + (16px * var(--ui-scale, 1)));
 }
 
 .addButton:hover {
@@ -195,7 +195,7 @@
 }
 
 .fabShift {
-  right: calc(1.5rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1)));
+  right: calc(1.5rem + var(--settings-sidebar-width) + (16px * var(--ui-scale, 1)));
 }
 
 .fab:hover {

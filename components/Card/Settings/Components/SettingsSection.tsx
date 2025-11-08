@@ -12,16 +12,16 @@ type Props = {
 
 export default function SettingsSection({ label, open, onToggle, children }: Props) {
   return (
-    <details open={open}>
+    <details open={open} className={styles.sectionCard}>
       <summary
-        className={`${styles.sectionHeader} ${open ? styles.open : ""}`}
+        className={styles.sectionHeader}
         onClick={(e) => {
           e.preventDefault();
           onToggle();
         }}
       >
-        <ChevronRight size={16} className={`${styles.chevron} ${open ? styles.rotate : ""}`} />
         <span>{label}</span>
+        <ChevronRight size={18} className={`${styles.chevron} ${open ? styles.rotate : ""}`} />
       </summary>
       {open && <div className={styles.sectionBody}>{children}</div>}
     </details>

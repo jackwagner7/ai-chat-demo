@@ -865,11 +865,17 @@ function HomeContent() {
           card={card}
           selectedId={selectedCardId}
           setSelectedId={setSelectedCardId}
-          onChange={(next) => setCards((prev) => prev.map((c) => (c.id === next.id ? next : c)))}
-          onDelete={(id) => {
-            setCards((prev) => prev.filter((c) => c.id !== id));
-            setSelectedCardId((prev) => (prev === id ? null : prev));
-          }}
+          onChange={(next) =>
+            queueMicrotask(() =>
+              setCards((prev) => prev.map((c) => (c.id === next.id ? next : c))),
+            )
+          }
+          onDelete={(id) =>
+            queueMicrotask(() => {
+              setCards((prev) => prev.filter((c) => c.id !== id));
+              setSelectedCardId((prev) => (prev === id ? null : prev));
+            })
+          }
           allowedTables={allowedTableLabels}
           tableNameMap={tableAliasMap}
         />
@@ -902,3 +908,4 @@ export default function Home() {
     </ThemeProvider>
   );
 }
+

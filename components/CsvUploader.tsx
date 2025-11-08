@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { StoredDataset } from "@/types";
 import styles from "./CsvUploader.module.css";
+import deleteStyles from "@/components/shared/DeleteConfirm.module.css";
 
 const MAX_DATASETS = 10;
 const MAX_PREVIEW_ROWS = 50;
@@ -326,14 +327,7 @@ export default function CsvUploader({
                         <>
                           <button
                             type="button"
-                            className={styles.cancelButton}
-                            onClick={() => setConfirming(null)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.confirmDeleteButton}
+                            className={deleteStyles.confirmDeleteButton}
                             onClick={async () => {
                               if (onDeleteDataset) {
                                 const result = await onDeleteDataset(dataset);
@@ -348,11 +342,19 @@ export default function CsvUploader({
                           >
                             Delete
                           </button>
+                          <button
+                            type="button"
+                            className={deleteStyles.cancelButton}
+                            onClick={() => setConfirming(null)}
+                          >
+                            Cancel
+                          </button>
+
                         </>
                       ) : (
                         <button
                           type="button"
-                          className={styles.deleteButton}
+                          className={deleteStyles.deleteButton}
                           onClick={() => setConfirming(dataset.tableId)}
                         >
                           Delete

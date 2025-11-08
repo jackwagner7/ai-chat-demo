@@ -4,6 +4,7 @@
   --background: #ffffff;
   --foreground: #000000;
   --ui-scale: 0.8;
+  --settings-sidebar-width: calc(360px * var(--ui-scale, 1));
   font-size: calc(16px * var(--ui-scale));
 }
 

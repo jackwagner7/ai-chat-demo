@@ -1,0 +1,67 @@
+@layer components {
+  .deleteLink {
+    border: none;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, 0.18);
+    color: #7f1d1d;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .deleteLink:hover {
+    background: rgba(185, 28, 28, 0.25);
+    color: #6f1111;
+  }
+
+  .deleteActions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .cancelButton,
+  .confirmDeleteButton {
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .cancelButton {
+    background: rgba(107, 114, 128, 0.12);
+    color: #374151;
+  }
+
+  .cancelButton:hover {
+    background: rgba(107, 114, 128, 0.2);
+  }
+
+  .confirmDeleteButton {
+    background: rgba(220, 38, 38, 0.18);
+    color: #7f1d1d;
+  }
+
+  .confirmDeleteButton:hover {
+    background: rgba(185, 28, 28, 0.25);
+    color: #991b1b;
+  }
+  .deleteButton {
+      border: none;
+      background: rgba(220, 38, 38, 0.08);
+      color: #991b1b;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+  }
+}
