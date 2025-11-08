@@ -8,6 +8,13 @@ import CsvUploader from "@/components/CsvUploader";
 import ThemeManager from "@/components/ThemeManager";
 import { validateSqlAgainstTables, extractReferencedTables, rewriteSqlTables } from "@/lib/sqlValidation";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import {
+  SCALED_CARD_GAPS,
+  SCALED_CARD_MIN,
+  SCALED_CARD_POSITION,
+  SCALED_CARD_SIZES,
+  scaleLayout,
+} from "@/lib/uiScale";
 import type {
   Msg,
   Card,
@@ -20,17 +27,17 @@ import type {
 } from "@/types";
 import styles from "./page.module.css";
 
-const CARD_STORAGE_KEY = "aidata.cards-report.v1";
+const CARD_STORAGE_KEY = "aidata.cards-report.v2";
+const LEGACY_CARD_STORAGE_KEY = "aidata.cards-report.v1";
+const CARD_STORAGE_VERSION = "cards-v2";
+const LEGACY_CARD_STORAGE_VERSION = "cards-v1";
 const CARD_GRID_COLUMNS = 3;
-const CARD_HORIZONTAL_GAP = 40;
-const CARD_VERTICAL_GAP = 40;
+const CARD_HORIZONTAL_GAP = SCALED_CARD_GAPS.horizontal;
+const CARD_VERTICAL_GAP = SCALED_CARD_GAPS.vertical;
 
-const DEFAULT_CARD_SIZES: Record<CardKind, { width: number; height: number }> = {
-  measure: { width: 320, height: 220 },
-  chart: { width: 420, height: 320 },
-};
+const DEFAULT_CARD_SIZES: Record<CardKind, { width: number; height: number }> = SCALED_CARD_SIZES;
 
-const DEFAULT_CARD_POSITION = { x: 240, y: 180 };
+const DEFAULT_CARD_POSITION = SCALED_CARD_POSITION;
 const DEFAULT_COLUMN_WIDTH = DEFAULT_CARD_SIZES.chart.width + CARD_HORIZONTAL_GAP;
 const DEFAULT_ROW_HEIGHT = DEFAULT_CARD_SIZES.chart.height + CARD_VERTICAL_GAP;
 
@@ -174,18 +181,18 @@ function computeInitialLayout(kind: CardKind, index: number): CardLayout {
   };
 }
 
-function ensureCardLayout(card: Card, index: number): Card {
+function ensureCardLayout(card: Card, index: number, options?: { forceScale?: boolean }): Card {
   const fallback = computeInitialLayout(card.kind, index);
   const sizeDefaults = DEFAULT_CARD_SIZES[card.kind];
-  const minWidth = card.kind === "measure" ? 200 : 320;
-  const minHeight = card.kind === "measure" ? 120 : 220;
-  const base = card.layout ?? fallback;
+  const minSize = card.kind === "measure" ? SCALED_CARD_MIN.measure : SCALED_CARD_MIN.chart;
+  const scaledLayout = card.layout && options?.forceScale ? scaleLayout(card.layout) : card.layout;
+  const base = scaledLayout ?? fallback;
 
   const toNumber = (value: unknown, fallbackValue: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallbackValue;
 
-  const width = Math.max(toNumber(base.width, sizeDefaults.width), minWidth);
-  const height = Math.max(toNumber(base.height, sizeDefaults.height), minHeight);
+  const width = Math.max(toNumber(base.width, sizeDefaults.width), minSize.width);
+  const height = Math.max(toNumber(base.height, sizeDefaults.height), minSize.height);
   const x = toNumber(base.x, fallback.x);
   const y = toNumber(base.y, fallback.y);
 
@@ -207,7 +214,16 @@ function HomeContent() {
   const [hasHydratedState, setHasHydratedState] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const { themeColors, setThemeColors } = useTheme();
+  const enqueueMessages = (updater: Msg[] | ((prev: Msg[]) => Msg[])) => {
+    const runUpdate = () => setMessages(updater);
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(runUpdate);
+    } else {
+      Promise.resolve().then(runUpdate);
+    }
+  };
+
+  const { themeColors, setThemeColors, backgroundColor, setBackgroundColor } = useTheme();
   const handleBackgroundClick = () => setSelectedCardId(null);
 
   useEffect(() => {
@@ -334,52 +350,80 @@ function HomeContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(CARD_STORAGE_KEY);
+    let stored = window.localStorage.getItem(CARD_STORAGE_KEY);
+    let usedLegacyKey = false;
     if (!stored) {
-      setHasHydratedState(true);
-      return;
+      stored = window.localStorage.getItem(LEGACY_CARD_STORAGE_KEY);
+      if (!stored) {
+        setHasHydratedState(true);
+        return;
+      }
+      usedLegacyKey = true;
     }
     try {
       const parsed = JSON.parse(stored) as CardsReport;
-      if (parsed.version !== "cards-v1") return;
+      const version =
+        typeof parsed.version === "string" ? parsed.version : LEGACY_CARD_STORAGE_VERSION;
+      if (version !== CARD_STORAGE_VERSION && version !== LEGACY_CARD_STORAGE_VERSION) {
+        setHasHydratedState(true);
+        return;
+      }
+      const isLegacyPayload = version === LEGACY_CARD_STORAGE_VERSION;
       if (Array.isArray(parsed.themeColors) && parsed.themeColors.length) {
         setThemeColors(parsed.themeColors);
+      }
+      if (typeof parsed.backgroundColor === "string" && parsed.backgroundColor.trim().length) {
+        setBackgroundColor(parsed.backgroundColor);
       }
       setSchema(typeof parsed.schema === "string" ? parsed.schema : "");
       setUploadedTables(sanitizeUploadedTables(parsed.uploadedTables));
       setPreview(sanitizePreview(parsed.preview));
       setDatasets(sanitizeDatasets(parsed.datasets));
       if (Array.isArray(parsed.cards)) {
-        setCards(parsed.cards.map((card, idx) => ensureCardLayout(card, idx)));
+        setCards(parsed.cards.map((card, idx) => ensureCardLayout(card, idx, { forceScale: isLegacyPayload })));
         setSelectedCardId((prev) =>
           parsed.cards.some((card) => card.id === prev) ? prev : null,
         );
+      }
+      if (usedLegacyKey) {
+        window.localStorage.removeItem(LEGACY_CARD_STORAGE_KEY);
       }
     } catch (error) {
       console.warn("Failed to restore dashboard state", error);
     } finally {
       setHasHydratedState(true);
     }
-  }, [setThemeColors]);
+  }, [setThemeColors, setBackgroundColor]);
 
   useEffect(() => {
     if (!hasHydratedState) return;
     if (typeof window === "undefined") return;
     try {
       const report: CardsReport = {
-        version: "cards-v1",
+        version: CARD_STORAGE_VERSION,
         themeColors,
         cards: cards.map((card, idx) => ensureCardLayout(card, idx)),
+        backgroundColor,
         schema,
         uploadedTables: sanitizeUploadedTables(uploadedTables),
         preview: sanitizePreview(preview),
         datasets: sanitizeDatasets(datasets),
       };
       window.localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(report));
+      window.localStorage.removeItem(LEGACY_CARD_STORAGE_KEY);
     } catch (error) {
       console.warn("Failed to persist dashboard state", error);
     }
-  }, [cards, datasets, hasHydratedState, preview, schema, themeColors, uploadedTables]);
+  }, [
+    backgroundColor,
+    cards,
+    datasets,
+    hasHydratedState,
+    preview,
+    schema,
+    themeColors,
+    uploadedTables,
+  ]);
 
   const handleDatasetDelete = async (dataset: StoredDataset) => {
     const baseUrl = process.env.NEXT_PUBLIC_DATA_ENGINE_API
@@ -448,7 +492,7 @@ function HomeContent() {
     }
 
     if (!dropped) {
-      setMessages((prev) => [
+      enqueueMessages((prev) => [
         ...prev,
         {
           role: "system",
@@ -502,7 +546,7 @@ function HomeContent() {
       removedCount > 0
         ? ` Removed ${removedCount} card${removedCount === 1 ? "" : "s"} referencing it.`
         : "";
-    setMessages((prev) => [
+    enqueueMessages((prev) => [
       ...prev,
       { role: "system", content: `Removed dataset ${displayLabel}.${cardNote}` },
     ]);
@@ -528,7 +572,7 @@ function HomeContent() {
       tableId,
       sourceFilename,
     });
-    setMessages((m) => [...m, { role: "system", content: `Loaded dataset ${viewLabel}.` }]);
+    enqueueMessages((m) => [...m, { role: "system", content: `Loaded dataset ${viewLabel}.` }]);
   }
 
   async function sendMessage() {
@@ -538,7 +582,7 @@ function HomeContent() {
 
     const currentMessage = input;
     const userMsg = { role: "user", content: currentMessage };
-    setMessages((m) => [...m, userMsg]);
+    enqueueMessages((m) => [...m, userMsg]);
     setIsSending(true);
 
     let clearInput = false;
@@ -580,7 +624,7 @@ function HomeContent() {
             context = mBlock.code.slice(start, end);
           }
         }
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: `Measure SQL blocked: ${validation.message}` },
           { role: "system", content: `SQL (blocked measure): ${mBlock.code}` },
@@ -592,7 +636,7 @@ function HomeContent() {
         .map((name) => tableAliasMap[name.toLowerCase()])
         .filter((id): id is string => Boolean(id));
       if (tableIds.length !== validation.tables.length) {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: "Measure SQL referenced an unknown table id." },
         ]);
@@ -600,7 +644,7 @@ function HomeContent() {
       }
       const executableSql = rewriteSqlTables(mBlock.code, tableAliasMap);
       // Log executed SQL to chat for debugging
-      setMessages((m) => [
+      enqueueMessages((m) => [
         ...m,
         { role: "system", content: `SQL (measure): ${executableSql}` },
       ]);
@@ -652,18 +696,18 @@ function HomeContent() {
             sourceTables: tableIds,
           },
         ]);
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "assistant", content: "Created a calculation card for you." },
         ]);
         clearInput = true;
       } else if (measureError) {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: `SQL error: ${measureError}` },
         ]);
       } else {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: "Measure query returned no rows." },
         ]);
@@ -685,7 +729,7 @@ function HomeContent() {
             context = cBlock.code.slice(start, end);
           }
         }
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: `Chart SQL blocked: ${validation.message}` },
           { role: "system", content: `SQL (blocked chart): ${cBlock.code}` },
@@ -697,7 +741,7 @@ function HomeContent() {
         .map((name) => tableAliasMap[name.toLowerCase()])
         .filter((id): id is string => Boolean(id));
       if (tableIds.length !== validation.tables.length) {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: "Chart SQL referenced an unknown table id." },
         ]);
@@ -705,7 +749,7 @@ function HomeContent() {
       }
       const executableSql = rewriteSqlTables(cBlock.code, tableAliasMap);
       // Log executed SQL to chat for debugging
-      setMessages((m) => [
+      enqueueMessages((m) => [
         ...m,
         { role: "system", content: `SQL (chart): ${executableSql}` },
       ]);
@@ -775,18 +819,18 @@ function HomeContent() {
             sourceTables: tableIds,
           },
         ]);
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "assistant", content: "Created a chart for you." },
         ]);
         clearInput = true;
       } else if (chartError) {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: `SQL error: ${chartError}` },
         ]);
       } else {
-        setMessages((m) => [
+        enqueueMessages((m) => [
           ...m,
           { role: "system", content: "Chart query returned no rows." },
         ]);
@@ -794,12 +838,12 @@ function HomeContent() {
       return;
     }
 
-    setMessages((m) => [...m, { role: "assistant", content: reply }]);
+    enqueueMessages((m) => [...m, { role: "assistant", content: reply }]);
       clearInput = true;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : typeof error === "string" ? error : "Unknown error";
-      setMessages((m) => [
+      enqueueMessages((m) => [
         ...m,
         { role: "system", content: `Request failed: ${message}` },
       ]);
@@ -810,7 +854,11 @@ function HomeContent() {
   }
 
   return (
-    <main className={styles.main} onClick={handleBackgroundClick}>
+    <main
+      className={styles.main}
+      onClick={handleBackgroundClick}
+      style={{ backgroundColor }}
+    >
       {cards.map((card) => (
         <CardContainer
           key={card.id}

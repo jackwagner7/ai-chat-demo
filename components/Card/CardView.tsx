@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import type { RefObject } from "react";
 import type { Card } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
@@ -33,6 +33,9 @@ export default function CardView({
 }) {
   const { themeColors } = useTheme();
   const titleSpanRef = useRef<HTMLSpanElement | null>(null);
+  const titleAlign = card.settings.titleBackground.titleAlign || "center";
+  const titleJustify =
+    titleAlign === "left" ? "flex-start" : titleAlign === "right" ? "flex-end" : "center";
 
   const titleColor =
     card.settings.titleBackground.titleColorRef !== undefined
@@ -45,12 +48,7 @@ export default function CardView({
         className="drag-handle"
         style={{
           display: "flex",
-          justifyContent:
-            (card.settings.titleBackground.titleAlign || "center") === "left"
-              ? "flex-start"
-              : card.settings.titleBackground.titleAlign === "right"
-              ? "flex-end"
-              : "center",
+          justifyContent: titleJustify,
           marginBottom: "0.5rem",
           cursor: isInteracting ? "grabbing" : "grab",
         }}
@@ -60,6 +58,8 @@ export default function CardView({
             margin: 0,
             fontSize: `${card.settings.titleBackground.titleSize ?? 1.25}rem`,
             color: titleColor,
+            width: "100%",
+            textAlign: titleAlign,
           }}
         >
           <span
@@ -100,25 +100,47 @@ function MeasureContent({
   const color = c.colorRef !== undefined ? themeColors[c.colorRef] : c.color || "#111";
   const justify = c.measureAlignX === "left" ? "flex-start" : c.measureAlignX === "right" ? "flex-end" : "center";
   const align = c.measureAlignY === "top" ? "flex-start" : c.measureAlignY === "bottom" ? "flex-end" : "center";
+  const textAlign = c.measureAlignX === "left" ? "left" : c.measureAlignX === "right" ? "right" : "center";
   const valueRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!onMeasureMinSize) return;
-    const titleBox = titleRef.current?.getBoundingClientRect();
-    const valueBox = valueRef.current?.getBoundingClientRect();
-    if (!titleBox || !valueBox) return;
-
-    const contentWidth = Math.max(Math.round(titleBox.width), Math.round(valueBox.width));
-    const contentHeight = Math.round(titleBox.height + valueBox.height);
+    const titleEl = titleRef.current;
+    const valueEl = valueRef.current;
+    if (!titleEl || !valueEl) return;
 
     const fontScale = (card.settings.measureAppearance.fontSize ?? 3) / 3;
-    const padX = 24 * fontScale;
     const padY = 32 * fontScale;
 
-    const minWidth = Math.max(contentWidth + padX, 140);
-    const minHeight = Math.max(contentHeight + padY, 50);
+    const updateMinSize = () => {
+      const titleBox = titleEl.getBoundingClientRect();
+      const valueBox = valueEl.getBoundingClientRect();
+      const contentHeight = Math.round(titleBox.height + valueBox.height);
+      const minWidth = 0;
+      const minHeight = Math.max(contentHeight + padY, 50);
+      onMeasureMinSize({ width: minWidth, height: minHeight });
+    };
 
-    onMeasureMinSize({ width: minWidth, height: minHeight });
+    let frame = requestAnimationFrame(updateMinSize);
+
+    const ResizeObserverCtor =
+      typeof window !== "undefined" ? window.ResizeObserver : undefined;
+
+    if (!ResizeObserverCtor) {
+      return () => cancelAnimationFrame(frame);
+    }
+
+    const resizeObserver = new ResizeObserverCtor(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateMinSize);
+    });
+    resizeObserver.observe(valueEl);
+    resizeObserver.observe(titleEl);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+    };
   }, [
     onMeasureMinSize,
     titleRef,
@@ -137,6 +159,10 @@ function MeasureContent({
         style={{
           fontSize: `${c.fontSize ?? 3}rem`,
           color,
+          display: "block",
+          width: "100%",
+          textAlign,
+          wordBreak: "break-word",
           userSelect: "none",
           WebkitUserSelect: "none",
           MozUserSelect: "none",
@@ -179,6 +205,16 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
     bottom: 12 + additionalBottomMargin,
     left: 12 + additionalLeftMargin,
   };
+
+  const axisTitleColor =
+    card.settings.axes?.axisTitleColorRef !== undefined
+      ? themeColors[card.settings.axes.axisTitleColorRef]
+      : card.settings.axes?.axisTitleColor || "#111";
+  const axisLabelColor =
+    card.settings.axes?.labelColorRef !== undefined
+      ? themeColors[card.settings.axes.labelColorRef]
+      : card.settings.axes?.labelColor || "#333";
+  const tickFontSize = (card.settings.axes?.labelSize ?? 0.9) * 16;
 
   const seriesColors = useMemo(() => {
     return (legend.seriesColorRefs || []).map((r, i) =>
@@ -237,24 +273,24 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
     return (
       <ResponsiveContainer width="100%" height="100%" style={{ background: "transparent" }}>
         <LineChart data={rows} margin={chartMargins} style={{ background: "transparent" }}>
-          <XAxis dataKey={xKey} tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
+          <XAxis dataKey={xKey} tick={{ fontSize: tickFontSize, fill: axisLabelColor }}>
             {card.settings.axes.xLabel ? (
               <Label
                 value={card.settings.axes.xLabel}
                 position="insideBottom"
                 dy={xAxisTitleDy}
-                style={{ fill: card.settings.axes.axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
+                style={{ fill: axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
               />
             ) : null}
           </XAxis>
-          <YAxis tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
+          <YAxis tick={{ fontSize: tickFontSize, fill: axisLabelColor }}>
             {card.settings.axes.yLabel ? (
               <Label
                 value={card.settings.axes.yLabel}
                 angle={-90}
                 position="insideLeft"
                 dx={yAxisTitleDx}
-                style={{ fill: card.settings.axes.axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
+                style={{ fill: axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
               />
             ) : null}
           </YAxis>
@@ -287,24 +323,24 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
   return (
     <ResponsiveContainer width="100%" height="100%" style={{ background: "transparent" }}>
       <BarChart data={rows} margin={chartMargins} style={{ background: "transparent" }}>
-        <XAxis dataKey={xKey} tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
+        <XAxis dataKey={xKey} tick={{ fontSize: tickFontSize, fill: axisLabelColor }}>
           {card.settings.axes.xLabel ? (
             <Label
               value={card.settings.axes.xLabel}
               position="insideBottom"
               dy={xAxisTitleDy}
-              style={{ fill: card.settings.axes.axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
+              style={{ fill: axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
             />
           ) : null}
         </XAxis>
-        <YAxis tick={{ fontSize: (card.settings.axes.labelSize ?? 0.9) * 16, fill: card.settings.axes.labelColor }}>
+        <YAxis tick={{ fontSize: tickFontSize, fill: axisLabelColor }}>
           {card.settings.axes.yLabel ? (
             <Label
               value={card.settings.axes.yLabel}
               angle={-90}
               position="insideLeft"
               dx={yAxisTitleDx}
-              style={{ fill: card.settings.axes.axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
+              style={{ fill: axisTitleColor, fontSize: `${card.settings.axes.axisTitleSize ?? 1}rem` }}
             />
           ) : null}
         </YAxis>

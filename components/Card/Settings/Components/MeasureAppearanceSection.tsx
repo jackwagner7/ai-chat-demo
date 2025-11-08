@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import ColorSwatches from "@/components/ColorSwatches";
 import styles from "../CardSettings.module.css";
-import type { Card } from "@/types";
+import type { Card, AlignX, AlignY } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 
 type MeasureCard = Extract<Card, { kind: "measure" }>;
@@ -22,6 +22,16 @@ type Props = {
 export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
   const { themeColors } = useTheme();
   const appearance = card.settings.measureAppearance;
+  const horizontalAlignments = [
+    { pos: "left" as AlignX, Icon: AlignLeft },
+    { pos: "center" as AlignX, Icon: AlignCenter },
+    { pos: "right" as AlignX, Icon: AlignRight },
+  ];
+  const verticalAlignments = [
+    { pos: "top" as AlignY, Icon: AlignVerticalJustifyStart },
+    { pos: "center" as AlignY, Icon: AlignVerticalJustifyCenter },
+    { pos: "bottom" as AlignY, Icon: AlignVerticalJustifyEnd },
+  ];
 
   return (
     <div className={styles.sectionBody}>
@@ -59,11 +69,7 @@ export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
       <div className={styles.alignmentGroup}>
         <span className={styles.sectionTitle}>Measure Alignment</span>
         <div className={styles.alignButtons}>
-          {[
-            { pos: "left", Icon: AlignLeft },
-            { pos: "center", Icon: AlignCenter },
-            { pos: "right", Icon: AlignRight },
-          ].map(({ pos, Icon }) => (
+          {horizontalAlignments.map(({ pos, Icon }) => (
             <button
               key={pos}
               className={`${styles.alignBtn} ${
@@ -71,7 +77,7 @@ export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
               }`}
               onClick={() =>
                 onUpdate((draft) => {
-                  draft.settings.measureAppearance.measureAlignX = pos as any;
+                  draft.settings.measureAppearance.measureAlignX = pos;
                 })
               }
               title={`Align ${pos}`}
@@ -81,11 +87,7 @@ export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
           ))}
         </div>
         <div className={styles.alignButtons}>
-          {[
-            { pos: "top", Icon: AlignVerticalJustifyStart },
-            { pos: "center", Icon: AlignVerticalJustifyCenter },
-            { pos: "bottom", Icon: AlignVerticalJustifyEnd },
-          ].map(({ pos, Icon }) => (
+          {verticalAlignments.map(({ pos, Icon }) => (
             <button
               key={pos}
               className={`${styles.alignBtn} ${
@@ -93,7 +95,7 @@ export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
               }`}
               onClick={() =>
                 onUpdate((draft) => {
-                  draft.settings.measureAppearance.measureAlignY = pos as any;
+                  draft.settings.measureAppearance.measureAlignY = pos;
                 })
               }
               title={`Align ${pos}`}
@@ -107,6 +109,7 @@ export default function MeasureAppearanceSection({ card, onUpdate }: Props) {
       <ColorSwatches
         label="Measure Colour"
         selectedRef={appearance.colorRef}
+        customValue={appearance.color}
         onSelect={(idx) =>
           onUpdate((draft) => {
             draft.settings.measureAppearance.colorRef = idx;

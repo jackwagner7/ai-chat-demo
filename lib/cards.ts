@@ -5,6 +5,13 @@ import type {
   ChartCard,
   CardsReport,
 } from "@/types";
+import { SCALED_CARD_SIZES } from "./uiScale";
+
+const CARDS_REPORT_VERSION = "cards-v2";
+const SUPPORTED_CARDS_REPORT_VERSIONS = new Set<CardsReport["version"]>([
+  "cards-v1",
+  CARDS_REPORT_VERSION,
+]);
 
 // Mapping helpers: legacy Measure/Chart -> unified Cards
 
@@ -18,8 +25,8 @@ export function measureToCard(m: Measure): MeasureCard {
     layout: {
       x: 0,
       y: 0,
-      width: 320,
-      height: 220,
+      width: SCALED_CARD_SIZES.measure.width,
+      height: SCALED_CARD_SIZES.measure.height,
     },
     settings: {
       titleBackground: {
@@ -57,8 +64,8 @@ export function chartToCard(c: Chart): ChartCard {
     layout: {
       x: 0,
       y: 0,
-      width: 420,
-      height: 320,
+      width: SCALED_CARD_SIZES.chart.width,
+      height: SCALED_CARD_SIZES.chart.height,
     },
     settings: {
       titleBackground: {
@@ -99,20 +106,28 @@ export function chartToCard(c: Chart): ChartCard {
 
 // Report (serialize/deserialize)
 
-export function serializeReport(cards: Card[], themeColors: string[]): CardsReport {
+export function serializeReport(
+  cards: Card[],
+  themeColors: string[],
+  backgroundColor?: string,
+): CardsReport {
   return {
-    version: "cards-v1",
+    version: CARDS_REPORT_VERSION,
     themeColors,
+    backgroundColor,
     cards,
   };
 }
 
-export function deserializeReport(report: CardsReport): { cards: Card[]; themeColors: string[] } {
-  if (!report || report.version !== "cards-v1") {
+export function deserializeReport(
+  report: CardsReport,
+): { cards: Card[]; themeColors: string[]; backgroundColor?: string } {
+  if (!report || !SUPPORTED_CARDS_REPORT_VERSIONS.has(report.version)) {
     throw new Error("Unsupported report version");
   }
   return {
     cards: report.cards || [],
     themeColors: report.themeColors || [],
+    backgroundColor: report.backgroundColor,
   };
 }

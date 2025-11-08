@@ -10,6 +10,13 @@ import {
 import { Rnd } from "react-rnd";
 import { useTheme } from "@/context/ThemeContext";
 import type { Card } from "@/types";
+import {
+  SCALED_CARD_MIN,
+  SCALED_CARD_POSITION,
+  SCALED_CARD_SIZES,
+  SCALED_SETTINGS_MARGIN,
+  SCALED_SETTINGS_WIDTH,
+} from "@/lib/uiScale";
 import CardView from "./CardView";
 import CardSettings from "./Settings/CardSettings";
 
@@ -44,10 +51,7 @@ export default function CardContainer({
   type Size = { width: number; height: number };
 
   const defaultMinSize = useMemo<Size>(
-    () =>
-      card.kind === "measure"
-        ? { width: 200, height: 120 }
-        : { width: 320, height: 220 },
+    () => (card.kind === "measure" ? SCALED_CARD_MIN.measure : SCALED_CARD_MIN.chart),
     [card.kind],
   );
 
@@ -57,10 +61,10 @@ export default function CardContainer({
   } | null>(null);
   const layoutFallback = useMemo(
     () => ({
-      x: 240,
-      y: 180,
-      width: card.kind === "measure" ? 320 : 420,
-      height: card.kind === "measure" ? 220 : 320,
+      x: SCALED_CARD_POSITION.x,
+      y: SCALED_CARD_POSITION.y,
+      width: card.kind === "measure" ? SCALED_CARD_SIZES.measure.width : SCALED_CARD_SIZES.chart.width,
+      height: card.kind === "measure" ? SCALED_CARD_SIZES.measure.height : SCALED_CARD_SIZES.chart.height,
     }),
     [card.kind],
   );
@@ -154,8 +158,8 @@ export default function CardContainer({
   useEffect(() => {
     if (!isSelected) return;
     if (typeof window === "undefined") return;
-    const sidebarWidth = 320; // matches CardSettings.module.css
-    const sidebarMargin = 16;
+    const sidebarWidth = SCALED_SETTINGS_WIDTH; // matches CardSettings.module.css
+    const sidebarMargin = SCALED_SETTINGS_MARGIN;
 
     const viewportWidth = window.innerWidth || 0;
     const rightLimit = Math.max(0, viewportWidth - sidebarWidth - sidebarMargin);

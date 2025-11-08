@@ -5,6 +5,9 @@ import { useTheme } from "@/context/ThemeContext";
 import { Palette } from "lucide-react";
 import styles from "./ColorSwatches.module.css";
 
+const normalizeHex = (value?: string) =>
+  value && /^#[0-9a-f]{3,8}$/i.test(value) ? value : undefined;
+
 export default function ColorSwatches({
   label,
   selectedRef,
@@ -12,6 +15,7 @@ export default function ColorSwatches({
   onCustom,
   disabledRefs,
   blockedValues,
+  customValue,
 }: {
   label: string;
   selectedRef?: number;
@@ -19,12 +23,13 @@ export default function ColorSwatches({
   onCustom: (color: string) => void;
   disabledRefs?: number[];
   blockedValues?: string[];
+  customValue?: string;
 }) {
   const { themeColors } = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [customColor, setCustomColor] = useState("#888");
+  const [customColor, setCustomColor] = useState(normalizeHex(customValue) ?? "#888");
   const [isCustomActive, setIsCustomActive] = useState(false);
-  const lastAllowedCustom = useRef("#888");
+  const lastAllowedCustom = useRef(normalizeHex(customValue) ?? "#888");
 
   const blockedValueSet = useMemo(
     () =>
@@ -45,14 +50,29 @@ export default function ColorSwatches({
     setIsCustomActive(selectedRef === undefined);
   }, [selectedRef]);
 
+  useEffect(() => {
+    if (selectedRef !== undefined) return;
+    const normalized = normalizeHex(customValue);
+    if (!normalized) return;
+    setCustomColor((prev) => {
+      if (prev.toLowerCase() === normalized.toLowerCase()) {
+        return prev;
+      }
+      lastAllowedCustom.current = normalized;
+      return normalized;
+    });
+  }, [selectedRef, customValue]);
+
   return (
     <div className={styles.colorSection}>
       <span className={styles.colorLabel}>{label}</span>
 
       <div className={styles.swatchRow}>
         {themeColors.map((c, idx) => {
-          const blocked = isColorBlocked(c);
-          const disabled = disabledRefs?.includes(idx) || blocked;
+          const disabledByRef = disabledRefs?.includes(idx) ?? false;
+          const blockedByValue = isColorBlocked(c);
+          const blocked = disabledByRef || blockedByValue;
+          const disabled = blocked;
           return (
             <button
               key={idx}

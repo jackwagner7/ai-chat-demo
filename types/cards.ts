@@ -129,8 +129,9 @@ export interface PreviewState {
 }
 
 export interface CardsReport {
-  version: "cards-v1";
+  version: "cards-v1" | "cards-v2";
   themeColors: string[];
+  backgroundColor?: string;
   cards: Card[];
   uploadedTables?: UploadedTableInfo[];
   datasets?: StoredDataset[];

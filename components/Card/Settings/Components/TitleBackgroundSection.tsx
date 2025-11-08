@@ -96,6 +96,7 @@ export default function TitleBackgroundSection({
       <ColorSwatches
         label="Title Colour"
         selectedRef={card.settings.titleBackground.titleColorRef}
+        customValue={card.settings.titleBackground.titleColor}
         onSelect={(idx) =>
           onUpdate((draft) => {
             draft.settings.titleBackground.titleColorRef = idx;
@@ -115,6 +116,7 @@ export default function TitleBackgroundSection({
       <ColorSwatches
         label="Background Colour"
         selectedRef={card.settings.titleBackground.bgColorRef}
+        customValue={card.settings.titleBackground.bgColor}
         onSelect={(idx) =>
           onUpdate((draft) => {
             const prevRef = draft.settings.titleBackground.bgColorRef;
@@ -165,57 +167,80 @@ function removeConflictingColors(
       ? fallback.value
       : undefined;
 
-  if (matchesRef(target.settings.titleBackground.titleColorRef)) {
+  const assignFallback = (
+    container: Record<string, any>,
+    refKey: string,
+    valueKey: string,
+  ) => {
     if (fallbackRef !== undefined) {
-      target.settings.titleBackground.titleColorRef = fallbackRef;
-      target.settings.titleBackground.titleColor = undefined;
+      container[refKey] = fallbackRef;
+      container[valueKey] = undefined;
     } else if (fallbackValue) {
-      target.settings.titleBackground.titleColorRef = undefined;
-      target.settings.titleBackground.titleColor = fallbackValue;
+      container[refKey] = undefined;
+      container[valueKey] = fallbackValue;
     } else {
-      target.settings.titleBackground.titleColorRef = undefined;
+      container[refKey] = undefined;
+      container[valueKey] = undefined;
     }
+  };
+
+  if (matchesRef(target.settings.titleBackground.titleColorRef)) {
+    assignFallback(target.settings.titleBackground, "titleColorRef", "titleColor");
   }
   if (matchesValue(target.settings.titleBackground.titleColor)) {
-    if (fallbackRef !== undefined) {
-      target.settings.titleBackground.titleColorRef = fallbackRef;
-      target.settings.titleBackground.titleColor = undefined;
-    } else if (fallbackValue) {
-      target.settings.titleBackground.titleColor = fallbackValue;
-    } else {
-      target.settings.titleBackground.titleColor = undefined;
-    }
+    assignFallback(target.settings.titleBackground, "titleColorRef", "titleColor");
   }
 
   if (target.kind === "measure") {
     const m = target.settings.measureAppearance;
-    if (matchesRef(m.colorRef)) m.colorRef = undefined;
-    if (matchesValue(m.color)) m.color = undefined;
+    if (matchesRef(m.colorRef) || matchesValue(m.color)) {
+      assignFallback(m, "colorRef", "color");
+    }
     return;
   }
 
   const axes = target.settings.axes;
-  if (matchesRef(axes.axisTitleColorRef)) axes.axisTitleColorRef = undefined;
-  if (matchesValue(axes.axisTitleColor)) axes.axisTitleColor = undefined;
-  if (matchesRef(axes.labelColorRef)) axes.labelColorRef = undefined;
-  if (matchesValue(axes.labelColor)) axes.labelColor = undefined;
+  if (matchesRef(axes.axisTitleColorRef) || matchesValue(axes.axisTitleColor)) {
+    assignFallback(axes, "axisTitleColorRef", "axisTitleColor");
+  }
+  if (matchesRef(axes.labelColorRef) || matchesValue(axes.labelColor)) {
+    assignFallback(axes, "labelColorRef", "labelColor");
+  }
 
   const legend = target.settings.legend;
-  if (legend.seriesColorRefs) {
-    legend.seriesColorRefs = legend.seriesColorRefs.map((ref) =>
-      matchesRef(ref) ? (undefined as any) : ref,
-    );
-  }
-  if (legend.seriesColors) {
-    legend.seriesColors = legend.seriesColors.map((color) =>
-      matchesValue(color) ? undefined : color,
-    );
+  const maxSeries = Math.max(
+    legend.seriesColorRefs?.length ?? 0,
+    legend.seriesColors?.length ?? 0,
+  );
+  for (let i = 0; i < maxSeries; i += 1) {
+    const ref = legend.seriesColorRefs?.[i];
+    const color = legend.seriesColors?.[i];
+    if (matchesRef(ref) || matchesValue(color)) {
+      if (fallbackRef !== undefined) {
+        if (legend.seriesColorRefs) legend.seriesColorRefs[i] = fallbackRef;
+        if (legend.seriesColors) legend.seriesColors[i] = undefined;
+      } else if (fallbackValue) {
+        if (legend.seriesColorRefs) legend.seriesColorRefs[i] = undefined;
+        if (legend.seriesColors) legend.seriesColors[i] = fallbackValue;
+      } else {
+        if (legend.seriesColorRefs) legend.seriesColorRefs[i] = undefined;
+        if (legend.seriesColors) legend.seriesColors[i] = undefined;
+      }
+    }
   }
   if (legend.segmentColorRefs) {
     Object.keys(legend.segmentColorRefs).forEach((key) => {
       const ref = legend.segmentColorRefs![key];
       if (matchesRef(ref)) {
-        delete legend.segmentColorRefs![key];
+        if (fallbackRef !== undefined) {
+          legend.segmentColorRefs![key] = fallbackRef;
+          if (legend.segmentColors) legend.segmentColors[key] = undefined;
+        } else if (fallbackValue) {
+          delete legend.segmentColorRefs![key];
+          if (legend.segmentColors) legend.segmentColors[key] = fallbackValue;
+        } else {
+          delete legend.segmentColorRefs![key];
+        }
       }
     });
   }
@@ -223,7 +248,15 @@ function removeConflictingColors(
     Object.keys(legend.segmentColors).forEach((key) => {
       const color = legend.segmentColors![key];
       if (matchesValue(color)) {
-        delete legend.segmentColors![key];
+        if (fallbackRef !== undefined) {
+          legend.segmentColorRefs = legend.segmentColorRefs ?? {};
+          legend.segmentColorRefs[key] = fallbackRef;
+          legend.segmentColors[key] = undefined;
+        } else if (fallbackValue) {
+          legend.segmentColors[key] = fallbackValue;
+        } else {
+          delete legend.segmentColors[key];
+        }
       }
     });
   }

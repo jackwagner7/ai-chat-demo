@@ -1,21 +1,201 @@
-/* 🎨 Floating action button */
-.fab {
+.tray {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: 1rem;
+  right: calc(1.5rem + 48px + 1rem);
+  z-index: 900;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  background: transparent;
+  display: flex;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trayShift {
+  right: calc(
+    1.5rem + 48px + 1rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1))
+  );
+}
+
+.colorRow {
+  display: flex;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.colorCell {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex: 0 0 auto;
+  border-radius: 0;
+}
+
+.colorButton {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.5rem;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.colorButton:hover {
+  transform: translateY(-2px);
+}
+
+.colorActive {
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: -3px;
+}
+
+.colorHex {
+  font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.backgroundCell .colorButton {
+  align-items: flex-end;
+}
+
+.backgroundBadge {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.popover {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  z-index: 980;
+}
+
+.popover::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+}
+
+.popover :global(.react-colorful) {
+  width: 100%;
+  height: 180px;
+}
+
+.hexField {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+  gap: 0.35rem;
+}
+
+.hexField input {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+.removeBtn {
+  border: none;
+  background: #ffeaea;
+  color: #a92a22;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.addButton {
+  position: fixed;
   right: 1.5rem;
+  bottom: calc(1.5rem + 48px + 0.5rem);
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: #0078d4;
-  color: white;
+  border-radius: 12px;
   border: none;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 950;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s ease;
+}
+
+.buttonShift {
+  right: calc(1.5rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1)));
+}
+
+.addButton:hover {
+  transform: translateY(-2px);
+}
+
+.fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: calc(48px * var(--ui-scale, 1));
+  height: calc(48px * var(--ui-scale, 1));
+  border-radius: 50%;
+  border: none;
+  background: #0078d4;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
-  z-index: 1000;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s ease,
+    background 0.2s ease;
+  z-index: 950;
+}
+
+.fabShift {
+  right: calc(1.5rem + (320px * var(--ui-scale, 1)) + (16px * var(--ui-scale, 1)));
 }
 
 .fab:hover {
@@ -23,79 +203,95 @@
   background: #0062aa;
 }
 
-/* ⚙️ Slide-in sidebar */
-.sidebar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 320px;
-  height: 100%;
-  background: #fff;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
-  padding: 1.25rem;
-  overflow-y: auto;
-  z-index: 999;
-  animation: slideIn 0.25s ease;
+.fabActive {
+  background: #005c97;
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
+@media (max-width: 640px) {
+  .colorRow {
+    transform: scale(0.9);
+    transform-origin: bottom right;
+  }
+
+  .popover {
+    width: min(240px, 90vw);
+  }
+}
+
+@keyframes swatchPop {
+  0% {
+    transform: translateY(12px) scale(0.85);
     opacity: 0;
   }
-  to {
-    transform: translateX(0);
+  60% {
+    transform: translateY(-2px) scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
-.subtitle {
-  font-size: 0.85rem;
-  color: #555;
-  margin-bottom: 0.8rem;
+@keyframes swatchSlideOut {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(12px) scale(0.85);
+    opacity: 0;
+  }
 }
 
-.colorList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.trayEntering .colorCell {
+  animation: swatchPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.colorItem {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  position: relative;
+.trayClosing .colorCell {
+  animation: swatchSlideOut 0.3s ease forwards;
 }
 
-.colorItem input {
-  width: 100%;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.9rem;
+.trayEntering .colorCell:nth-child(1) {
+  animation-delay: 0s;
+}
+.trayEntering .colorCell:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.trayEntering .colorCell:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.trayEntering .colorCell:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.trayEntering .colorCell:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.trayEntering .colorCell:nth-child(6) {
+  animation-delay: 0.25s;
+}
+.trayEntering .colorCell:nth-child(7) {
+  animation-delay: 0.3s;
 }
 
-.removeBtn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  border: none;
-  background: transparent;
-  color: #888;
-  cursor: pointer;
-  font-size: 1rem;
+.trayClosing .colorCell:nth-child(1) {
+  animation-delay: 0.15s;
 }
-
-.addBtn {
-  margin-top: 1rem;
-  background: #0078d4;
-  color: white;
-  border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  width: 100%;
-  font-weight: 500;
+.trayClosing .colorCell:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.trayClosing .colorCell:nth-child(3) {
+  animation-delay: 0.09s;
+}
+.trayClosing .colorCell:nth-child(4) {
+  animation-delay: 0.06s;
+}
+.trayClosing .colorCell:nth-child(5) {
+  animation-delay: 0.03s;
+}
+.trayClosing .colorCell:nth-child(6) {
+  animation-delay: 0s;
+}
+.trayClosing .colorCell:nth-child(7) {
+  animation-delay: 0s;
 }

@@ -7,7 +7,7 @@
   position: fixed;
   top: 0;
   right: 0;
-  width: 320px;
+  width: calc(320px * var(--ui-scale, 1));
   height: 100%;
   background: #fff;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);

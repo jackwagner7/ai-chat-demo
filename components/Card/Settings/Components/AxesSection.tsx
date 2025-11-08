@@ -75,6 +75,7 @@ export default function AxesSection({ card, onUpdate }: Props) {
           <ColorSwatches
             label="Axis Title Colour"
             selectedRef={card.settings.axes.axisTitleColorRef}
+            customValue={card.settings.axes.axisTitleColor}
             onSelect={(idx) =>
               onUpdate((draft) => {
                 draft.settings.axes.axisTitleColorRef = idx;
@@ -133,6 +134,7 @@ export default function AxesSection({ card, onUpdate }: Props) {
       <ColorSwatches
         label="Tick Label Colour"
         selectedRef={card.settings.axes.labelColorRef}
+        customValue={card.settings.axes.labelColor}
         onSelect={(idx) =>
           onUpdate((draft) => {
             draft.settings.axes.labelColorRef = idx;

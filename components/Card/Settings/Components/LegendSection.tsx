@@ -111,6 +111,7 @@ export default function LegendSection({
               <ColorSwatches
                 label="Colour"
                 selectedRef={legend.seriesColorRefs?.[i]}
+                customValue={legend.seriesColors?.[i]}
                 onSelect={(idx) =>
                   onUpdate((draft) => {
                     const refs: Array<number | undefined> = [
@@ -194,6 +195,7 @@ export default function LegendSection({
               <ColorSwatches
                 label="Colour"
                 selectedRef={legend.segmentColorRefs?.[category]}
+                customValue={legend.segmentColors?.[category]}
                 disabledRefs={blockedThemeRefs}
                 blockedValues={blockedColorValues}
                 onSelect={(idx) =>
