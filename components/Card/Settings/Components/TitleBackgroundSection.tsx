@@ -1,10 +1,11 @@
 "use client";
 import type { CSSProperties } from "react";
 import { AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import ColorSwatches from "@/components/ColorSwatches";
 import { TitleInput } from ".";
 import styles from "../CardSettings.module.css";
-import type { Card } from "@/types";
+import type { AlignX, Card, TitleBackgroundSettings } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 
 type Props = {
@@ -27,6 +28,16 @@ export default function TitleBackgroundSection({
     { key: "titleItalic", label: "I", title: "Italic", style: { fontStyle: "italic" } },
     { key: "titleUnderline", label: "U", title: "Underline", style: { textDecoration: "underline" } },
   ];
+  const alignmentOptions: Array<{ pos: AlignX; Icon: LucideIcon }> = [
+    { pos: "left", Icon: AlignLeft },
+    { pos: "center", Icon: AlignCenter },
+    { pos: "right", Icon: AlignRight },
+  ];
+  const isStyleActive = (config: TitleBackgroundSettings, key: StyleKey) =>
+    Boolean(config[key]);
+  const toggleStyle = (config: TitleBackgroundSettings, key: StyleKey) => {
+    config[key] = !config[key];
+  };
 
   return (
     <>
@@ -44,11 +55,7 @@ export default function TitleBackgroundSection({
       <div className={styles.alignmentGroup}>
         <span className={styles.sectionTitle}>Title Alignment</span>
         <div className={styles.alignButtons}>
-          {[
-            { pos: "left", Icon: AlignLeft },
-            { pos: "center", Icon: AlignCenter },
-            { pos: "right", Icon: AlignRight },
-          ].map(({ pos, Icon }) => (
+          {alignmentOptions.map(({ pos, Icon }) => (
             <button
               key={pos}
               className={`${styles.alignBtn} ${
@@ -56,7 +63,7 @@ export default function TitleBackgroundSection({
               }`}
               onClick={() =>
                 onUpdate((draft) => {
-                  draft.settings.titleBackground.titleAlign = pos as any;
+                  draft.settings.titleBackground.titleAlign = pos;
                 })
               }
               title={`Align ${pos}`}
@@ -71,15 +78,14 @@ export default function TitleBackgroundSection({
         <span className={styles.sectionTitle}>Title Style</span>
         <div className={styles.alignButtons}>
           {textStyles.map(({ key, label, title, style }) => {
-            const isActive = Boolean((card.settings.titleBackground as any)[key]);
+            const isActive = isStyleActive(card.settings.titleBackground, key);
             return (
               <button
                 key={key}
                 className={`${styles.alignBtn} ${isActive ? styles.active : ""}`}
                 onClick={() =>
                   onUpdate((draft) => {
-                    const current = Boolean((draft.settings.titleBackground as any)[key]);
-                    (draft.settings.titleBackground as any)[key] = !current;
+                    toggleStyle(draft.settings.titleBackground, key);
                   })
                 }
                 title={title}
@@ -168,46 +174,82 @@ function removeConflictingColors(
       : undefined;
 
   const assignFallback = (
-    container: Record<string, any>,
-    refKey: string,
-    valueKey: string,
+    setRef: (value: number | undefined) => void,
+    setValue: (value: string | undefined) => void,
   ) => {
     if (fallbackRef !== undefined) {
-      container[refKey] = fallbackRef;
-      container[valueKey] = undefined;
+      setRef(fallbackRef);
+      setValue(undefined);
     } else if (fallbackValue) {
-      container[refKey] = undefined;
-      container[valueKey] = fallbackValue;
+      setRef(undefined);
+      setValue(fallbackValue);
     } else {
-      container[refKey] = undefined;
-      container[valueKey] = undefined;
+      setRef(undefined);
+      setValue(undefined);
     }
   };
 
   if (matchesRef(target.settings.titleBackground.titleColorRef)) {
-    assignFallback(target.settings.titleBackground, "titleColorRef", "titleColor");
+    assignFallback(
+      (value) => {
+        target.settings.titleBackground.titleColorRef = value;
+      },
+      (value) => {
+        target.settings.titleBackground.titleColor = value;
+      },
+    );
   }
   if (matchesValue(target.settings.titleBackground.titleColor)) {
-    assignFallback(target.settings.titleBackground, "titleColorRef", "titleColor");
+    assignFallback(
+      (value) => {
+        target.settings.titleBackground.titleColorRef = value;
+      },
+      (value) => {
+        target.settings.titleBackground.titleColor = value;
+      },
+    );
   }
 
   if (target.kind === "measure") {
     const m = target.settings.measureAppearance;
     if (matchesRef(m.colorRef) || matchesValue(m.color)) {
-      assignFallback(m, "colorRef", "color");
+      assignFallback(
+        (value) => {
+          m.colorRef = value;
+        },
+        (value) => {
+          m.color = value;
+        },
+      );
     }
     return;
   }
 
   const axes = target.settings.axes;
   if (matchesRef(axes.axisTitleColorRef) || matchesValue(axes.axisTitleColor)) {
-    assignFallback(axes, "axisTitleColorRef", "axisTitleColor");
+    assignFallback(
+      (value) => {
+        axes.axisTitleColorRef = value;
+      },
+      (value) => {
+        axes.axisTitleColor = value;
+      },
+    );
   }
   if (matchesRef(axes.labelColorRef) || matchesValue(axes.labelColor)) {
-    assignFallback(axes, "labelColorRef", "labelColor");
+    assignFallback(
+      (value) => {
+        axes.labelColorRef = value;
+      },
+      (value) => {
+        axes.labelColor = value;
+      },
+    );
   }
 
   const legend = target.settings.legend;
+  const segmentColorRefs = legend.segmentColorRefs;
+  const segmentColors = legend.segmentColors;
   const maxSeries = Math.max(
     legend.seriesColorRefs?.length ?? 0,
     legend.seriesColors?.length ?? 0,
@@ -228,34 +270,34 @@ function removeConflictingColors(
       }
     }
   }
-  if (legend.segmentColorRefs) {
-    Object.keys(legend.segmentColorRefs).forEach((key) => {
-      const ref = legend.segmentColorRefs![key];
+  if (segmentColorRefs) {
+    Object.keys(segmentColorRefs).forEach((key) => {
+      const ref = segmentColorRefs[key];
       if (matchesRef(ref)) {
         if (fallbackRef !== undefined) {
-          legend.segmentColorRefs![key] = fallbackRef;
-          if (legend.segmentColors) legend.segmentColors[key] = undefined;
+          segmentColorRefs[key] = fallbackRef;
+          if (segmentColors) segmentColors[key] = undefined;
         } else if (fallbackValue) {
-          delete legend.segmentColorRefs![key];
-          if (legend.segmentColors) legend.segmentColors[key] = fallbackValue;
+          delete segmentColorRefs[key];
+          if (segmentColors) segmentColors[key] = fallbackValue;
         } else {
-          delete legend.segmentColorRefs![key];
+          delete segmentColorRefs[key];
         }
       }
     });
   }
-  if (legend.segmentColors) {
-    Object.keys(legend.segmentColors).forEach((key) => {
-      const color = legend.segmentColors![key];
+  if (segmentColors) {
+    Object.keys(segmentColors).forEach((key) => {
+      const color = segmentColors[key];
       if (matchesValue(color)) {
         if (fallbackRef !== undefined) {
           legend.segmentColorRefs = legend.segmentColorRefs ?? {};
           legend.segmentColorRefs[key] = fallbackRef;
-          legend.segmentColors[key] = undefined;
+          segmentColors[key] = undefined;
         } else if (fallbackValue) {
-          legend.segmentColors[key] = fallbackValue;
+          segmentColors[key] = fallbackValue;
         } else {
-          delete legend.segmentColors[key];
+          delete segmentColors[key];
         }
       }
     });

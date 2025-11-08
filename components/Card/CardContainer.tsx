@@ -42,6 +42,13 @@ export default function CardContainer({
   const [showSettings, setShowSettings] = useState<boolean>(isSelected);
   const [closingSettings, setClosingSettings] = useState<boolean>(false);
   const { themeColors } = useTheme();
+  const scheduleStateUpdate = useCallback((fn: () => void) => {
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(fn);
+      return;
+    }
+    Promise.resolve().then(fn);
+  }, []);
 
   const bg =
     card.settings.titleBackground.bgColorRef !== undefined
@@ -126,23 +133,29 @@ export default function CardContainer({
 
   // Manage slide-in/out visibility so we can animate on close
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     if (isSelected) {
       // Mark sidebar open immediately so other UI (dataset panel) can slide with it
       document.body.setAttribute("data-settings-sidebar", "open");
-      setClosingSettings(false);
-      setShowSettings(true);
+      scheduleStateUpdate(() => {
+        setClosingSettings(false);
+        setShowSettings(true);
+      });
     } else if (showSettings) {
       // Start closing: let others slide back while sidebar animates out
       document.body.removeAttribute("data-settings-sidebar");
-      setClosingSettings(true);
-      const t = setTimeout(() => {
+      scheduleStateUpdate(() => {
+        setClosingSettings(true);
+      });
+      timeoutId = setTimeout(() => {
         setShowSettings(false);
         setClosingSettings(false);
       }, 250);
-      return () => clearTimeout(t);
     }
-    return undefined;
-  }, [isSelected, showSettings]);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSelected, scheduleStateUpdate, showSettings]);
 
   // On unmount, ensure attribute is cleared
   useEffect(() => {
