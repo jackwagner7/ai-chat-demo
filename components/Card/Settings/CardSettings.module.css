@@ -108,8 +108,52 @@
    ========================== */
 .deleteRow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-top: 0.5rem;
+}
+
+.formatActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.formatButton {
+  border: none;
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.formatButton:hover {
+  background: rgba(15, 23, 42, 0.15);
+}
+
+.formatButtonActive {
+  background: rgba(15, 118, 110, 0.2);
+  color: #0f766e;
+}
+
+.formatButtonActive:hover {
+  background: rgba(15, 118, 110, 0.3);
+}
+
+.pasteButton {
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+}
+
+.pasteButton:hover {
+  background: rgba(37, 99, 235, 0.25);
+  color: #1e3a8a;
 }
 
 
@@ -120,10 +164,11 @@
 .sidebar label {
   display: flex;
   flex-direction: column;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #222;
+  color: #0f172a;
   margin-bottom: 0.75rem;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .sidebar input[type="text"],
@@ -131,7 +176,7 @@
 .sidebar select,
 .sidebar textarea {
   background: #fff;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(15, 23, 42, 0.15);
   border-radius: 6px;
   padding: 0.45rem 0.6rem;
   color: #111;
@@ -166,17 +211,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .numeric {
-  border: 1px solid #ccc;
+  border: 1px solid rgba(15, 23, 42, 0.15);
   border-radius: 4px;
   padding: 2px 4px;
   font-size: 0.85rem;
   width: 60px;
   text-align: right;
+  color: #0f172a;
+  background: #fff;
 }
 
 /* ==========================
@@ -314,7 +363,19 @@
   font-size: 0.92rem;
   padding: 0.9rem 1.15rem;
   cursor: pointer;
-  background: linear-gradient(90deg, rgba(0, 120, 212, 0.08), rgba(0, 120, 212, 0));
+  background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.85)
+    ),
+    linear-gradient(90deg, rgba(0, 120, 212, 0.08), rgba(0, 120, 212, 0));
+  color: #0f172a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sectionHeader span {
+  flex: 1;
 }
 
 .chevron {

@@ -7,6 +7,7 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { Rnd } from "react-rnd";
 import { useTheme } from "@/context/ThemeContext";
 import type { Card } from "@/types";
@@ -14,8 +15,6 @@ import {
   SCALED_CARD_MIN,
   SCALED_CARD_POSITION,
   SCALED_CARD_SIZES,
-  SCALED_SETTINGS_MARGIN,
-  SCALED_SETTINGS_WIDTH,
 } from "@/lib/uiScale";
 import CardView from "./CardView";
 import CardSettings from "./Settings/CardSettings";
@@ -28,6 +27,10 @@ export default function CardContainer({
   onDelete,
   allowedTables,
   tableNameMap,
+  boardScale,
+  onCopyFormatting,
+  onPasteFormatting,
+  formatCopied = false,
 }: {
   card: Card;
   selectedId: string | null;
@@ -36,6 +39,10 @@ export default function CardContainer({
   onDelete: (id: string) => void;
   allowedTables: string[];
   tableNameMap: Record<string, string>;
+  boardScale: number;
+  onCopyFormatting: () => void;
+  onPasteFormatting?: (() => void) | null;
+  formatCopied?: boolean;
 }) {
   const isSelected = selectedId === card.id;
   const [isInteracting, setIsInteracting] = useState(false);
@@ -166,47 +173,21 @@ export default function CardContainer({
     };
   }, []);
 
-  // When settings sidebar is visible (card selected), make sure the card
-  // isn’t hidden behind it. Shift left if overlapping the right sidebar.
-  useEffect(() => {
-    if (!isSelected) return;
-    if (typeof window === "undefined") return;
-    const sidebarWidth = SCALED_SETTINGS_WIDTH; // matches CardSettings.module.css
-    const sidebarMargin = SCALED_SETTINGS_MARGIN;
 
-    const viewportWidth = window.innerWidth || 0;
-    const rightLimit = Math.max(0, viewportWidth - sidebarWidth - sidebarMargin);
-    const current = card.layout ?? layoutFallback;
-    const cardRight = current.x + current.width;
-    if (cardRight > rightLimit) {
-      const delta = cardRight - rightLimit;
-      const nextX = Math.max(12, current.x - delta);
-      updateLayout({ x: nextX });
-    }
-    // Re-check on resize while selected
-    const onResize = () => {
-      const vw = window.innerWidth || 0;
-      const rl = Math.max(0, vw - sidebarWidth - sidebarMargin);
-      const cur = card.layout ?? layoutFallback;
-      const cr = cur.x + cur.width;
-      if (cr > rl) {
-        const d = cr - rl;
-        const nx = Math.max(12, cur.x - d);
-        updateLayout({ x: nx });
-      }
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [isSelected, card.layout, layoutFallback, updateLayout]);
-
+  const baseShadow = isSelected
+    ? "0 0 0 2px #0078d4, 0 4px 15px rgba(0,0,0,0.25)"
+    : "0 4px 15px rgba(0,0,0,0.25)";
+  const highlightShadow = formatCopied ? "0 0 0 2px rgba(16, 185, 129, 0.8)" : null;
+  const combinedShadow = highlightShadow ? `${highlightShadow}, ${baseShadow}` : baseShadow;
 
   return (
     <>
       <Rnd
         position={{ x: layout.x, y: layout.y }}
         size={{ width: layout.width, height: layout.height }}
-        bounds="window"
+        bounds="parent"
         dragHandleClassName="drag-handle"
+        scale={boardScale}
         enableResizing={{
           top: true,
           right: true,
@@ -250,9 +231,7 @@ export default function CardContainer({
         style={{
           background: bg,
           borderRadius: "0.75rem",
-          boxShadow: isSelected
-            ? "0 0 0 2px #0078d4, 0 4px 15px rgba(0,0,0,0.25)"
-            : "0 4px 15px rgba(0,0,0,0.25)",
+          boxShadow: combinedShadow,
           padding: "1rem",
           position: "absolute",
           zIndex: isSelected ? 80 : 60,
@@ -267,16 +246,22 @@ export default function CardContainer({
         />
       </Rnd>
 
-      {showSettings && (
-        <CardSettings
-          card={card}
-          onChange={onChange}
-          onDelete={() => onDelete(card.id)}
-          allowedTables={allowedTables}
-          tableNameMap={tableNameMap}
-          closing={closingSettings}
-        />
-      )}
+      {showSettings &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <CardSettings
+            card={card}
+            onChange={onChange}
+            onDelete={() => onDelete(card.id)}
+            allowedTables={allowedTables}
+            tableNameMap={tableNameMap}
+            closing={closingSettings}
+            onCopyFormatting={onCopyFormatting}
+            onPasteFormatting={onPasteFormatting}
+            formatCopied={formatCopied}
+          />,
+          document.body,
+        )}
     </>
   );
 }

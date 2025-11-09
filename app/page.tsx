@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import { Undo2, Redo2 } from "lucide-react";
 import { extractBlock } from "@/lib/aiHelpers";
 import { deriveSeries, normalizeType, generatePalette } from "@/lib/chartHelpers";
 import CardContainer from "@/components/Card/CardContainer";
@@ -15,6 +17,12 @@ import {
   SCALED_CARD_SIZES,
   scaleLayout,
 } from "@/lib/uiScale";
+import {
+  applyFormattingSnapshot,
+  buildFormattingSnapshot,
+  type FormatClipboard,
+} from "@/lib/cardFormatting";
+import { useBoardViewport, BOARD_WIDTH, BOARD_HEIGHT } from "@/hooks/useBoardViewport";
 import type {
   Msg,
   Card,
@@ -202,6 +210,30 @@ function ensureCardLayout(card: Card, index: number, options?: { forceScale?: bo
   } as Card;
 }
 
+const seedCardFormatting = (card: Card, existing: Card[]): Card => {
+  if (!existing.length) return card;
+  const reversed = [...existing].reverse();
+
+  if (card.kind === "measure") {
+    const source = reversed.find((entry) => entry.kind === "measure") ?? reversed[0];
+    return applyFormattingSnapshot(card, buildFormattingSnapshot(source));
+  }
+
+  const targetType = card.settings.graph.chartType;
+  const matchingChart = reversed.find(
+    (entry) => entry.kind === "chart" && entry.settings.graph.chartType === targetType,
+  );
+  const source = matchingChart ?? reversed[0];
+  const preserveGraphType =
+    source.kind === "chart" && source.settings.graph.chartType !== targetType;
+  return applyFormattingSnapshot(
+    card,
+    buildFormattingSnapshot(source),
+    preserveGraphType ? { preserveGraphType: true } : undefined,
+  );
+};
+
+
 function HomeContent() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -210,9 +242,31 @@ function HomeContent() {
   const [preview, setPreview] = useState<PreviewState>({ columns: [], rows: [] });
   const [datasets, setDatasets] = useState<StoredDataset[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [formatClipboard, setFormatClipboard] = useState<FormatClipboard | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [hasHydratedState, setHasHydratedState] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const {
+    boardViewportRef,
+    boardSurfaceRef,
+    boardState,
+    spacePressed,
+    isBoardDragging,
+    handleBoardPointerDown,
+    handleBoardPointerMove,
+    handleBoardPointerUp,
+    handleZoomIn,
+    handleZoomOut,
+    zoomPercent,
+  } = useBoardViewport();
+
+  const handleUndo = useCallback(() => {
+    // Placeholder for upcoming history stack wiring
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    // Placeholder for upcoming history stack wiring
+  }, []);
 
   const enqueueMessages = (updater: Msg[] | ((prev: Msg[]) => Msg[])) => {
     const runUpdate = () => setMessages(updater);
@@ -664,9 +718,8 @@ function HomeContent() {
         const measureTheme = themeColorToken(1, "#0078d4");
         const backgroundTheme = themeColorToken(2, "#ffffff");
 
-        setCards((prev) => [
-          ...prev,
-          {
+        setCards((prev) => {
+          const baseCard: Card = {
             id: crypto.randomUUID(),
             kind: "measure",
             data: { value: valueString },
@@ -694,8 +747,10 @@ function HomeContent() {
             },
             layout: computeInitialLayout("measure", prev.length),
             sourceTables: tableIds,
-          },
-        ]);
+          };
+          const seeded = seedCardFormatting(baseCard, prev);
+          return [...prev, seeded];
+        });
         enqueueMessages((m) => [
           ...m,
           { role: "assistant", content: "Created a calculation card for you." },
@@ -780,9 +835,8 @@ function HomeContent() {
                 backgroundTheme.value ? [backgroundTheme.value] : [],
               )
             : { refs: {}, colors: {} };
-        setCards((prev) => [
-          ...prev,
-          {
+        setCards((prev) => {
+          const baseCard: Card = {
             id: crypto.randomUUID(),
             kind: "chart",
             data: { rows: chartRows, xKey, series: yKeys },
@@ -817,8 +871,10 @@ function HomeContent() {
             },
             layout: computeInitialLayout("chart", prev.length),
             sourceTables: tableIds,
-          },
-        ]);
+          };
+          const seeded = seedCardFormatting(baseCard, prev);
+          return [...prev, seeded];
+        });
         enqueueMessages((m) => [
           ...m,
           { role: "assistant", content: "Created a chart for you." },
@@ -853,33 +909,134 @@ function HomeContent() {
     }
   }
 
+  const handleCopyFormatting = useCallback((cardToCopy: Card) => {
+    setFormatClipboard({
+      sourceCardId: cardToCopy.id,
+      snapshot: buildFormattingSnapshot(cardToCopy),
+    });
+  }, []);
+
+  const handlePasteFormatting = useCallback(
+    (targetCard: Card) => {
+      if (!formatClipboard) return;
+      const updated = applyFormattingSnapshot(targetCard, formatClipboard.snapshot);
+      queueMicrotask(() =>
+        setCards((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry))),
+      );
+    },
+    [formatClipboard],
+  );
+
+  const boardSurfaceClassName = [
+    styles.boardSurface,
+    spacePressed && !isBoardDragging ? styles.boardSurfaceGrab : "",
+    isBoardDragging ? styles.boardSurfaceGrabbing : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const boardBaseColor = backgroundColor || "#f7f4ee";
+
   return (
     <main
       className={styles.main}
       onClick={handleBackgroundClick}
-      style={{ backgroundColor }}
     >
-      {cards.map((card) => (
-        <CardContainer
-          key={card.id}
-          card={card}
-          selectedId={selectedCardId}
-          setSelectedId={setSelectedCardId}
-          onChange={(next) =>
-            queueMicrotask(() =>
-              setCards((prev) => prev.map((c) => (c.id === next.id ? next : c))),
-            )
-          }
-          onDelete={(id) =>
-            queueMicrotask(() => {
-              setCards((prev) => prev.filter((c) => c.id !== id));
-              setSelectedCardId((prev) => (prev === id ? null : prev));
-            })
-          }
-          allowedTables={allowedTableLabels}
-          tableNameMap={tableAliasMap}
-        />
-      ))}
+      <div
+        className={styles.boardViewport}
+        ref={boardViewportRef}
+      >
+        <div
+          ref={boardSurfaceRef}
+          className={boardSurfaceClassName}
+          style={{
+            width: BOARD_WIDTH,
+            height: BOARD_HEIGHT,
+            transform: `translate3d(${boardState.x}px, ${boardState.y}px, 0) scale(${boardState.scale})`,
+            backgroundColor: boardBaseColor,
+            "--board-base-color": boardBaseColor,
+          } as CSSProperties}
+          onPointerDown={handleBoardPointerDown}
+          onPointerMove={handleBoardPointerMove}
+          onPointerUp={handleBoardPointerUp}
+          onPointerCancel={handleBoardPointerUp}
+        >
+          {cards.map((card) => (
+            <CardContainer
+              key={card.id}
+              card={card}
+              selectedId={selectedCardId}
+              setSelectedId={setSelectedCardId}
+              onChange={(next) =>
+                queueMicrotask(() => {
+                  setCards((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+                  setFormatClipboard((prev) =>
+                    prev?.sourceCardId === next.id ? null : prev,
+                  );
+                })
+              }
+              onDelete={(id) =>
+                queueMicrotask(() => {
+                  setCards((prev) => prev.filter((c) => c.id !== id));
+                  setSelectedCardId((prev) => (prev === id ? null : prev));
+                  setFormatClipboard((prev) =>
+                    prev?.sourceCardId === id ? null : prev,
+                  );
+                })
+              }
+              allowedTables={allowedTableLabels}
+              tableNameMap={tableAliasMap}
+              boardScale={boardState.scale}
+              onCopyFormatting={() => handleCopyFormatting(card)}
+              onPasteFormatting={
+                formatClipboard && formatClipboard.sourceCardId !== card.id
+                  ? () => handlePasteFormatting(card)
+                  : null
+              }
+              formatCopied={formatClipboard?.sourceCardId === card.id}
+            />
+          ))}
+        </div>
+        <div className={styles.zoomIndicator}>
+          <div className={styles.zoomBox} aria-label="Zoom controls">
+            <button
+              type="button"
+              className={styles.zoomButton}
+              onClick={handleZoomOut}
+              aria-label="Zoom out"
+            >
+              &minus;
+            </button>
+            <span className={styles.zoomValue}>{zoomPercent}%</span>
+            <button
+              type="button"
+              className={styles.zoomButton}
+              onClick={handleZoomIn}
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+          </div>
+          <div className={styles.historyBox} aria-label="History controls">
+            <button
+              type="button"
+              className={styles.historyButton}
+              onClick={handleUndo}
+              aria-label="Undo"
+            >
+              <Undo2 size={18} />
+            </button>
+            <button
+              type="button"
+              className={styles.historyButton}
+              onClick={handleRedo}
+              aria-label="Redo"
+            >
+              <Redo2 size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
 
       <ThemeManager />
       <CsvUploader

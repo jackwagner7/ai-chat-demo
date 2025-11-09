@@ -24,6 +24,9 @@ type CardSettingsProps = {
   onDelete: () => void;
   allowedTables: string[];
   tableNameMap: Record<string, string>;
+  onCopyFormatting: () => void;
+  onPasteFormatting?: (() => void) | null;
+  formatCopied?: boolean;
 };
 
 export default function CardSettings({
@@ -33,6 +36,9 @@ export default function CardSettings({
   allowedTables,
   tableNameMap,
   closing = false,
+  onCopyFormatting,
+  onPasteFormatting,
+  formatCopied = false,
 }: CardSettingsProps & { closing?: boolean }) {
   const { themeColors } = useTheme();
 
@@ -145,9 +151,6 @@ export default function CardSettings({
     );
   }, [chartId, chartXKey, chartRows]);
   const segmentCategoriesKey = segmentCategories.join("|");
-  const datasetCount = card.sourceTables?.length ?? 0;
-  const hasSql = Boolean(card.settings.sql.code?.trim());
-
   const segmentColorRefs = legendSettings?.segmentColorRefs || {};
   const segmentColorMap = legendSettings?.segmentColors || {};
   const segmentKeys = new Set<string>([
@@ -257,30 +260,43 @@ export default function CardSettings({
           {card.kind === "measure" ? "Measure Card" : `${normalizedChartTypeLabel || "Chart"} Card`}
         </p>
         <h2>{titleText}</h2>
-        <div className={styles.headerBadges}>
-          <span className={styles.badge}>
-            Series {card.kind === "chart" ? chartSeriesCount : 1}
-          </span>
-          <span className={styles.badge}>Datasets {datasetCount}</span>
-          <span className={styles.badge}>{hasSql ? "Custom SQL" : "Generated SQL"}</span>
-        </div>
-        <ul className={styles.metaList}>
-          <li className={styles.metaItem}>
-            <span>Width</span>
-            <strong>{card.layout.width}</strong>
-          </li>
-          <li className={styles.metaItem}>
-            <span>Height</span>
-            <strong>{card.layout.height}</strong>
-          </li>
-          <li className={styles.metaItem}>
-            <span>Saved</span>
-            <strong>{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
-          </li>
-        </ul>
       </header>
 
       <div className={styles.deleteRow}>
+        <div className={styles.formatActions}>
+          <button
+            type="button"
+            className={`${styles.formatButton} ${formatCopied ? styles.formatButtonActive : ""}`}
+            onClick={onCopyFormatting}
+          >
+            {formatCopied ? (
+              <>
+                Format
+                <br />
+                Copied
+              </>
+            ) : (
+              <>
+                Copy
+                <br />
+                Formatting
+              </>
+            )}
+          </button>
+          {onPasteFormatting ? (
+            <button
+              type="button"
+              className={`${styles.formatButton} ${styles.pasteButton}`}
+              onClick={onPasteFormatting}
+            >
+              <>
+                Paste
+                <br />
+                Formatting
+              </>
+            </button>
+          ) : null}
+        </div>
         {confirmDelete ? (
           <div className={deleteStyles.deleteActions}>
             <button
@@ -436,7 +452,3 @@ export default function CardSettings({
     </div>
   );
 }
-
-
-
-

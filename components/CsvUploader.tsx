@@ -325,7 +325,7 @@ export default function CsvUploader({
                     >
                       {activeConfirming === dataset.tableId ? (
                         <>
-                          cd <button
+                          <button
                             type="button"
                             className={deleteStyles.confirmDeleteButton}
                             onClick={async () => {
