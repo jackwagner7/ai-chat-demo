@@ -50,7 +50,7 @@ export default function CardView({
           display: "flex",
           justifyContent: titleJustify,
           marginBottom: "0.5rem",
-          cursor: isInteracting ? "grabbing" : "grab",
+          cursor: "default",
         }}
       >
         <h3

@@ -281,6 +281,7 @@ function CardContainer({
           position: "absolute",
           zIndex: isSelected ? 80 : 60,
           transition: "box-shadow 0.15s ease",
+          cursor: "default",
         }}
       >
         <CardView

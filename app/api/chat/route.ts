@@ -5,6 +5,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { message } = await req.json();
+  console.log("[chat] OpenAI request:", { message });
 
 const completion = await openai.chat.completions.create({
   model: "gpt-4o-mini",
@@ -42,5 +43,9 @@ d
 
 
   const reply = completion.choices[0].message.content;
+  console.log("[chat] OpenAI response:", {
+    reply,
+    usage: completion.usage,
+  });
   return NextResponse.json({ reply });
 }

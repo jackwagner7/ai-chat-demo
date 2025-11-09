@@ -6,6 +6,8 @@ import type {
   GraphSettings,
   AxesSettings,
   LegendSettings,
+  MeasureCard,
+  ChartCard,
 } from "@/types";
 
 export type CardPatchDelta = {
@@ -23,8 +25,12 @@ export type CardPatch = {
   after: CardPatchDelta;
 };
 
-const clone = <T,>(value: T | undefined): T | undefined =>
-  value === undefined ? undefined : (structuredClone ? structuredClone(value) : (JSON.parse(JSON.stringify(value)) as T));
+function clone<T>(value: T): T;
+function clone<T>(value: T | undefined): T | undefined;
+function clone<T>(value: T | undefined): T | undefined {
+  if (value === undefined) return undefined;
+  return structuredClone ? structuredClone(value) : (JSON.parse(JSON.stringify(value)) as T);
+}
 
 const applyDelta = (card: Card, delta: CardPatchDelta): Card => {
   const next = { ...card };
@@ -38,31 +44,35 @@ const applyDelta = (card: Card, delta: CardPatchDelta): Card => {
     };
   }
   if (card.kind === "measure") {
+    let measureSettings = next.settings as MeasureCard["settings"];
     if (delta.measureAppearance) {
-      next.settings = {
-        ...next.settings,
-        measureAppearance: clone(delta.measureAppearance) ?? next.settings.measureAppearance,
+      measureSettings = {
+        ...measureSettings,
+        measureAppearance: clone(delta.measureAppearance) ?? measureSettings.measureAppearance,
       };
     }
+    next.settings = measureSettings;
   } else {
+    let chartSettings = next.settings as ChartCard["settings"];
     if (delta.graph) {
-      next.settings = {
-        ...next.settings,
-        graph: clone(delta.graph) ?? next.settings.graph,
+      chartSettings = {
+        ...chartSettings,
+        graph: clone(delta.graph) ?? chartSettings.graph,
       };
     }
     if (delta.axes) {
-      next.settings = {
-        ...next.settings,
-        axes: clone(delta.axes) ?? next.settings.axes,
+      chartSettings = {
+        ...chartSettings,
+        axes: clone(delta.axes) ?? chartSettings.axes,
       };
     }
     if (delta.legend) {
-      next.settings = {
-        ...next.settings,
-        legend: clone(delta.legend) ?? next.settings.legend,
+      chartSettings = {
+        ...chartSettings,
+        legend: clone(delta.legend) ?? chartSettings.legend,
       };
     }
+    next.settings = chartSettings;
   }
   return next;
 };
