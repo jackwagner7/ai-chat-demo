@@ -170,36 +170,62 @@ export function useBoardViewport() {
     };
   }, []);
 
+  const wheelSnapshotRef = useRef<{
+    ctrlKey: boolean;
+    deltaX: number;
+    deltaY: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+  const wheelFrameRef = useRef<number | null>(null);
+
+  const flushWheelEvent = useCallback(() => {
+    wheelFrameRef.current = null;
+    const snapshot = wheelSnapshotRef.current;
+    wheelSnapshotRef.current = null;
+    if (!snapshot) return;
+
+    if (snapshot.ctrlKey) {
+      updateBoardState((prev) => {
+        const viewport = boardViewportRef.current?.getBoundingClientRect();
+        if (!viewport) return prev;
+        const scaleDelta = Math.exp(-snapshot.deltaY * 0.0015);
+        const nextScale = Math.min(
+          Math.max(prev.scale * scaleDelta, BOARD_MIN_SCALE),
+          BOARD_MAX_SCALE,
+        );
+        const pointerX = snapshot.clientX - viewport.left;
+        const pointerY = snapshot.clientY - viewport.top;
+        const originX = (pointerX - prev.x) / prev.scale;
+        const originY = (pointerY - prev.y) / prev.scale;
+        const x = pointerX - originX * nextScale;
+        const y = pointerY - originY * nextScale;
+        return { x, y, scale: nextScale };
+      });
+    } else {
+      updateBoardState((prev) => ({
+        ...prev,
+        x: prev.x - snapshot.deltaX,
+        y: prev.y - snapshot.deltaY,
+      }));
+    }
+  }, [updateBoardState]);
+
   const handleBoardWheel = useCallback(
     (event: WheelEvent) => {
-      if (event.ctrlKey) {
-        event.preventDefault();
-        updateBoardState((prev) => {
-          const viewport = boardViewportRef.current?.getBoundingClientRect();
-          if (!viewport) return prev;
-          const scaleDelta = Math.exp(-event.deltaY * 0.0015);
-          const nextScale = Math.min(
-            Math.max(prev.scale * scaleDelta, BOARD_MIN_SCALE),
-            BOARD_MAX_SCALE,
-          );
-          const pointerX = event.clientX - viewport.left;
-          const pointerY = event.clientY - viewport.top;
-          const originX = (pointerX - prev.x) / prev.scale;
-          const originY = (pointerY - prev.y) / prev.scale;
-          const x = pointerX - originX * nextScale;
-          const y = pointerY - originY * nextScale;
-          return { x, y, scale: nextScale };
-        });
-      } else {
-        event.preventDefault();
-        updateBoardState((prev) => ({
-          ...prev,
-          x: prev.x - event.deltaX,
-          y: prev.y - event.deltaY,
-        }));
+      event.preventDefault();
+      wheelSnapshotRef.current = {
+        ctrlKey: event.ctrlKey,
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      if (wheelFrameRef.current === null) {
+        wheelFrameRef.current = requestAnimationFrame(flushWheelEvent);
       }
     },
-    [updateBoardState],
+    [flushWheelEvent],
   );
 
   useEffect(() => {
@@ -208,6 +234,14 @@ export function useBoardViewport() {
     viewport.addEventListener("wheel", handleBoardWheel, { passive: false });
     return () => viewport.removeEventListener("wheel", handleBoardWheel);
   }, [handleBoardWheel]);
+
+  useEffect(() => {
+    return () => {
+      if (wheelFrameRef.current !== null) {
+        cancelAnimationFrame(wheelFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleBoardPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {

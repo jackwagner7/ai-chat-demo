@@ -75,7 +75,7 @@ export default function LegendSection({
 
       {normalizedType !== "pie" && (
         <>
-          <h4 style={{ margin: "0.5rem 0 0.25rem" }}>Series</h4>
+          <h4 className={styles.seriesHeading}>Series</h4>
           {series.map((s, i) => (
             <div
               key={s}
@@ -88,7 +88,7 @@ export default function LegendSection({
                 marginBottom: "0.5rem",
               }}
             >
-              <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+              <div className={styles.seriesMeta} style={{ opacity: 0.7 }}>
                 SQL Name: <code>{s}</code>
               </div>
               <label style={{ marginTop: "0.25rem" }}>
@@ -149,17 +149,10 @@ export default function LegendSection({
       )}
 
       {segmentToggleAvailable && normalizedType !== "pie" && (
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            margin: "0.5rem 0",
-            fontSize: "0.9rem",
-          }}
-        >
+        <label className={styles.segmentToggle}>
           <input
             type="checkbox"
+            className={styles.segmentToggleInput}
             checked={segmentColorsEnabled}
             onChange={(e) =>
               onUpdate((draft) => {
@@ -170,13 +163,19 @@ export default function LegendSection({
               })
             }
           />
-          <span>Segment colour differences</span>
+          <span className={styles.segmentToggleVisual} aria-hidden="true" />
+          <span className={styles.segmentToggleCopy}>
+            <span className={styles.segmentToggleTitle}>Segment-specific colours</span>
+            <span className={styles.segmentToggleHint}>
+              Automatically assigns distinct colours to each series.
+            </span>
+          </span>
         </label>
       )}
 
       {hasSegmentControls && (
         <>
-          <h4 style={{ margin: "0.75rem 0 0.35rem" }}>Segment Colours</h4>
+          <h4 className={styles.segmentHeading}>Segment Colours</h4>
           {segmentCategories.map((category) => (
             <div
               key={category}
@@ -189,7 +188,7 @@ export default function LegendSection({
                 marginBottom: "0.5rem",
               }}
             >
-              <div style={{ fontSize: "0.8rem", opacity: 0.75 }}>
+              <div className={styles.segmentMeta}>
                 Category: <code>{category}</code>
               </div>
               <ColorSwatches

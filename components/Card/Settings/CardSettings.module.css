@@ -207,14 +207,109 @@
   gap: 0.4rem;
 }
 
+.seriesHeading {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.seriesMeta {
+  font-size: 0.8rem;
+  color: #000;
+}
+
+.segmentHeading {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.segmentMeta {
+  font-size: 0.8rem;
+  color: #000;
+  margin-bottom: 0.35rem;
+}
+
 .sliderHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #000;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.segmentToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 6px 14px rgba(15, 16, 40, 0.06);
+}
+
+.segmentToggleInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.segmentToggleVisual {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #cbd5f5;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.segmentToggleVisual::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.segmentToggleInput:checked + .segmentToggleVisual {
+  background: #0078d4;
+}
+
+.segmentToggleInput:checked + .segmentToggleVisual::after {
+  transform: translateX(18px);
+}
+
+.segmentToggleInput:focus-visible + .segmentToggleVisual {
+  box-shadow: 0 0 0 4px rgba(0, 120, 212, 0.25);
+}
+
+.segmentToggleCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: #0f172a;
+}
+
+.segmentToggleTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.segmentToggleHint {
+  font-size: 0.8rem;
+  color: #475467;
 }
 
 .numeric {
@@ -240,7 +335,7 @@
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #333;
+  color: #000;
 }
 
 .alignButtons {
@@ -259,6 +354,7 @@
   background: #fff;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
+  color:black
 }
 
 .alignBtn:hover {
@@ -287,7 +383,7 @@
    ========================== */
 .sqlLabel {
   font-weight: 600;
-  color: #333;
+  color: #000;
 }
 
 .sqlBox {
@@ -395,9 +491,5 @@
 .sectionCard summary::-webkit-details-marker {
   display: none;
 }
-
-
-
-
 
 

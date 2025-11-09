@@ -1,11 +1,13 @@
 "use client";
 import {
+  memo,
   useState,
   useEffect,
   useCallback,
   useMemo,
   useRef,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { Rnd } from "react-rnd";
@@ -18,20 +20,15 @@ import {
 } from "@/lib/uiScale";
 import CardView from "./CardView";
 import CardSettings from "./Settings/CardSettings";
+import { createLayoutPatch, createSettingsPatch, type CardPatch } from "@/lib/cardPatches";
 
-export default function CardContainer({
-  card,
-  selectedId,
-  setSelectedId,
-  onChange,
-  onDelete,
-  allowedTables,
-  tableNameMap,
-  boardScale,
-  onCopyFormatting,
-  onPasteFormatting,
-  formatCopied = false,
-}: {
+const layoutsEqual = (a: Card["layout"], b: Card["layout"]) =>
+  a.x === b.x &&
+  a.y === b.y &&
+  a.width === b.width &&
+  a.height === b.height;
+
+type CardContainerProps = {
   card: Card;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
@@ -43,12 +40,30 @@ export default function CardContainer({
   onCopyFormatting: () => void;
   onPasteFormatting?: (() => void) | null;
   formatCopied?: boolean;
-}) {
+  onRecordPatch?: (patch: CardPatch) => void;
+};
+
+function CardContainer({
+  card,
+  selectedId,
+  setSelectedId,
+  onChange,
+  onDelete,
+  allowedTables,
+  tableNameMap,
+  boardScale,
+  onCopyFormatting,
+  onPasteFormatting,
+  formatCopied = false,
+  onRecordPatch,
+}: CardContainerProps) {
   const isSelected = selectedId === card.id;
   const [isInteracting, setIsInteracting] = useState(false);
   const [showSettings, setShowSettings] = useState<boolean>(isSelected);
   const [closingSettings, setClosingSettings] = useState<boolean>(false);
   const { themeColors } = useTheme();
+  const dragStartedRef = useRef(false);
+  const dragStartLayoutRef = useRef<Card["layout"] | null>(null);
   const scheduleStateUpdate = useCallback((fn: () => void) => {
     if (typeof queueMicrotask === "function") {
       queueMicrotask(fn);
@@ -121,21 +136,29 @@ export default function CardContainer({
     [card.id, defaultMinSize.height, defaultMinSize.width],
   );
 
+  const emitChange = useCallback(
+    (next: Card) => {
+      if (next.id !== card.id) {
+        onChange(next);
+        return;
+      }
+      const patch = createSettingsPatch(card, next);
+      if (patch) onRecordPatch?.(patch);
+      onChange(next);
+    },
+    [card, onChange, onRecordPatch],
+  );
+
   const updateLayout = useCallback(
     (partial: Partial<Card["layout"]>) => {
       const currentLayout = card.layout ?? layoutFallback;
       const nextLayout = { ...currentLayout, ...partial };
-      if (
-        currentLayout.x === nextLayout.x &&
-        currentLayout.y === nextLayout.y &&
-        currentLayout.width === nextLayout.width &&
-        currentLayout.height === nextLayout.height
-      ) {
-        return;
-      }
-      onChange({ ...card, layout: nextLayout });
+      if (layoutsEqual(currentLayout, nextLayout)) return;
+      const patch = createLayoutPatch(card, currentLayout, nextLayout);
+      if (patch) onRecordPatch?.(patch);
+      emitChange({ ...card, layout: nextLayout });
     },
-    [card, layoutFallback, onChange],
+    [card, layoutFallback, emitChange, onRecordPatch],
   );
 
   // Manage slide-in/out visibility so we can animate on close
@@ -186,7 +209,6 @@ export default function CardContainer({
         position={{ x: layout.x, y: layout.y }}
         size={{ width: layout.width, height: layout.height }}
         bounds="parent"
-        dragHandleClassName="drag-handle"
         scale={boardScale}
         enableResizing={{
           top: true,
@@ -200,33 +222,56 @@ export default function CardContainer({
         }}
         minWidth={minSize.width}
         minHeight={minSize.height}
+        onPointerDownCapture={(e: ReactPointerEvent<HTMLDivElement>) => e.stopPropagation()}
+        onPointerUpCapture={(e: ReactPointerEvent<HTMLDivElement>) => e.stopPropagation()}
+        onClickCapture={(e: ReactMouseEvent<HTMLDivElement>) => e.stopPropagation()}
         onDragStart={() => {
+          dragStartedRef.current = true;
+          dragStartLayoutRef.current = { ...(card.layout ?? layoutFallback) };
           setIsInteracting(true);
           document.body.style.userSelect = "none";
         }}
         onDragStop={(_event, data) => {
           document.body.style.userSelect = "auto";
-          setTimeout(() => setIsInteracting(false), 120);
+          setTimeout(() => {
+            setIsInteracting(false);
+            dragStartedRef.current = false;
+            dragStartLayoutRef.current = null;
+          }, 80);
+          const startLayout = dragStartLayoutRef.current ?? layoutFallback;
+          const didMove = startLayout.x !== data.x || startLayout.y !== data.y;
           updateLayout({ x: data.x, y: data.y });
+          if (!didMove) {
+            setSelectedId(selectedId === card.id ? null : card.id);
+          }
         }}
         onResizeStart={() => {
           setIsInteracting(true);
+          dragStartLayoutRef.current = { ...(card.layout ?? layoutFallback) };
           document.body.style.userSelect = "none";
         }}
         onResizeStop={(_event, _direction, ref, _delta, position) => {
           document.body.style.userSelect = "auto";
-          setTimeout(() => setIsInteracting(false), 120);
+          setTimeout(() => {
+            setIsInteracting(false);
+            dragStartedRef.current = false;
+            dragStartLayoutRef.current = null;
+          }, 80);
+          const startLayout = dragStartLayoutRef.current ?? layoutFallback;
+          const didResize =
+            startLayout.width !== ref.offsetWidth ||
+            startLayout.height !== ref.offsetHeight ||
+            startLayout.x !== position.x ||
+            startLayout.y !== position.y;
           updateLayout({
             width: ref.offsetWidth,
             height: ref.offsetHeight,
             x: position.x,
             y: position.y,
           });
-        }}
-        onClick={(e: ReactMouseEvent<HTMLDivElement>) => {
-          e.stopPropagation();
-          if (isInteracting) return;
-          setSelectedId(isSelected ? null : card.id);
+          if (!didResize) {
+            setSelectedId(selectedId === card.id ? null : card.id);
+          }
         }}
         style={{
           background: bg,
@@ -240,7 +285,7 @@ export default function CardContainer({
       >
         <CardView
           card={card}
-          onChange={onChange}
+          onChange={emitChange}
           isInteracting={isInteracting}
           onMeasureMinSize={card.kind === "measure" ? handleMeasureMinSize : undefined}
         />
@@ -251,7 +296,7 @@ export default function CardContainer({
         createPortal(
           <CardSettings
             card={card}
-            onChange={onChange}
+            onChange={emitChange}
             onDelete={() => onDelete(card.id)}
             allowedTables={allowedTables}
             tableNameMap={tableNameMap}
@@ -265,3 +310,19 @@ export default function CardContainer({
     </>
   );
 }
+
+const propsAreEqual = (prev: CardContainerProps, next: CardContainerProps) => {
+  const prevSelected = prev.selectedId === prev.card.id;
+  const nextSelected = next.selectedId === next.card.id;
+  return (
+    prev.card === next.card &&
+    prevSelected === nextSelected &&
+    prev.boardScale === next.boardScale &&
+    prev.allowedTables === next.allowedTables &&
+    prev.tableNameMap === next.tableNameMap &&
+    prev.formatCopied === next.formatCopied &&
+    prev.onRecordPatch === next.onRecordPatch
+  );
+};
+
+export default memo(CardContainer, propsAreEqual);

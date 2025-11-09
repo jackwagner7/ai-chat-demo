@@ -277,9 +277,7 @@ export default function CardSettings({
               </>
             ) : (
               <>
-                Copy
-                <br />
-                Formatting
+                Copy Format
               </>
             )}
           </button>
@@ -290,9 +288,7 @@ export default function CardSettings({
               onClick={onPasteFormatting}
             >
               <>
-                Paste
-                <br />
-                Formatting
+                Paste Format
               </>
             </button>
           ) : null}

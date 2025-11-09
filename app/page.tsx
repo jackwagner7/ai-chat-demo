@@ -4,10 +4,8 @@ import type { CSSProperties } from "react";
 import { Undo2, Redo2 } from "lucide-react";
 import { extractBlock } from "@/lib/aiHelpers";
 import { deriveSeries, normalizeType, generatePalette } from "@/lib/chartHelpers";
+import dynamic from "next/dynamic";
 import CardContainer from "@/components/Card/CardContainer";
-import ChatPanel from "@/components/ChatPanel";
-import CsvUploader from "@/components/CsvUploader";
-import ThemeManager from "@/components/ThemeManager";
 import { validateSqlAgainstTables, extractReferencedTables, rewriteSqlTables } from "@/lib/sqlValidation";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import {
@@ -20,9 +18,19 @@ import {
 import {
   applyFormattingSnapshot,
   buildFormattingSnapshot,
+  seedCardFormatting,
   type FormatClipboard,
 } from "@/lib/cardFormatting";
+import {
+  computeCardPlacement,
+  getViewportBoardRect,
+} from "@/lib/cardPlacement";
+import {
+  applyCardPatch,
+  type CardPatch,
+} from "@/lib/cardPatches";
 import { useBoardViewport, BOARD_WIDTH, BOARD_HEIGHT } from "@/hooks/useBoardViewport";
+import type { BoardState } from "@/hooks/useBoardViewport";
 import type {
   Msg,
   Card,
@@ -35,6 +43,21 @@ import type {
 } from "@/types";
 import styles from "./page.module.css";
 
+const ThemeManager = dynamic(
+  () => import("@/components/ThemeManager"),
+  { loading: () => null, ssr: false },
+) as typeof import("@/components/ThemeManager").default;
+
+const CsvUploader = dynamic(
+  () => import("@/components/CsvUploader"),
+  { loading: () => null, ssr: false },
+) as typeof import("@/components/CsvUploader").default;
+
+const ChatPanel = dynamic(
+  () => import("@/components/ChatPanel"),
+  { loading: () => null, ssr: false },
+) as typeof import("@/components/ChatPanel").default;
+
 const CARD_STORAGE_KEY = "aidata.cards-report.v2";
 const LEGACY_CARD_STORAGE_KEY = "aidata.cards-report.v1";
 const CARD_STORAGE_VERSION = "cards-v2";
@@ -42,6 +65,7 @@ const LEGACY_CARD_STORAGE_VERSION = "cards-v1";
 const CARD_GRID_COLUMNS = 3;
 const CARD_HORIZONTAL_GAP = SCALED_CARD_GAPS.horizontal;
 const CARD_VERTICAL_GAP = SCALED_CARD_GAPS.vertical;
+const BLOCKED_KEYWORD_REGEX = /Keyword "([^"]+)"/i;
 
 const DEFAULT_CARD_SIZES: Record<CardKind, { width: number; height: number }> = SCALED_CARD_SIZES;
 
@@ -54,7 +78,6 @@ const MAX_PREVIEW_ROWS = 50;
 
 type DatasetSummary = Pick<StoredDataset, "displayName" | "columns" | "sourceFilename">;
 type DataRow = Record<string, unknown>;
-
 const toNonEmptyString = (value: unknown): string | undefined => {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
@@ -210,28 +233,6 @@ function ensureCardLayout(card: Card, index: number, options?: { forceScale?: bo
   } as Card;
 }
 
-const seedCardFormatting = (card: Card, existing: Card[]): Card => {
-  if (!existing.length) return card;
-  const reversed = [...existing].reverse();
-
-  if (card.kind === "measure") {
-    const source = reversed.find((entry) => entry.kind === "measure") ?? reversed[0];
-    return applyFormattingSnapshot(card, buildFormattingSnapshot(source));
-  }
-
-  const targetType = card.settings.graph.chartType;
-  const matchingChart = reversed.find(
-    (entry) => entry.kind === "chart" && entry.settings.graph.chartType === targetType,
-  );
-  const source = matchingChart ?? reversed[0];
-  const preserveGraphType =
-    source.kind === "chart" && source.settings.graph.chartType !== targetType;
-  return applyFormattingSnapshot(
-    card,
-    buildFormattingSnapshot(source),
-    preserveGraphType ? { preserveGraphType: true } : undefined,
-  );
-};
 
 
 function HomeContent() {
@@ -243,9 +244,20 @@ function HomeContent() {
   const [datasets, setDatasets] = useState<StoredDataset[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [formatClipboard, setFormatClipboard] = useState<FormatClipboard | null>(null);
+  const [undoStack, setUndoStack] = useState<CardPatch[]>([]);
+  const [redoStack, setRedoStack] = useState<CardPatch[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [hasHydratedState, setHasHydratedState] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const applyPatchToCards = useCallback(
+    (patch: CardPatch, mode: "before" | "after") => {
+      setCards((prev) => applyCardPatch(prev, patch, mode));
+      setFormatClipboard((prev) =>
+        prev?.sourceCardId === patch.cardId ? null : prev,
+      );
+    },
+    [],
+  );
   const {
     boardViewportRef,
     boardSurfaceRef,
@@ -261,12 +273,26 @@ function HomeContent() {
   } = useBoardViewport();
 
   const handleUndo = useCallback(() => {
-    // Placeholder for upcoming history stack wiring
-  }, []);
+    setUndoStack((prev) => {
+      if (!prev.length) return prev;
+      const nextUndo = prev.slice(0, -1);
+      const patch = prev[prev.length - 1];
+      setRedoStack((redo) => [...redo, patch]);
+      applyPatchToCards(patch, "before");
+      return nextUndo;
+    });
+  }, [applyPatchToCards]);
 
   const handleRedo = useCallback(() => {
-    // Placeholder for upcoming history stack wiring
-  }, []);
+    setRedoStack((prev) => {
+      if (!prev.length) return prev;
+      const nextRedo = prev.slice(0, -1);
+      const patch = prev[prev.length - 1];
+      setUndoStack((undo) => [...undo, patch]);
+      applyPatchToCards(patch, "after");
+      return nextRedo;
+    });
+  }, [applyPatchToCards]);
 
   const enqueueMessages = (updater: Msg[] | ((prev: Msg[]) => Msg[])) => {
     const runUpdate = () => setMessages(updater);
@@ -401,6 +427,12 @@ function HomeContent() {
     });
     return { refs, colors };
   };
+
+
+  const handleRecordPatch = useCallback((patch: CardPatch) => {
+    setUndoStack((prev) => [...prev, patch]);
+    setRedoStack([]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -667,7 +699,7 @@ function HomeContent() {
     if (mBlock) {
       const validation = validateSqlAgainstTables(mBlock.code, allowedTableLabels);
       if (!validation.ok) {
-        const kw = validation.message.match(/Keyword \"([^\"]+)\"/i)?.[1];
+        const kw = validation.message.match(BLOCKED_KEYWORD_REGEX)?.[1];
         let context = "";
         if (kw) {
           const lower = mBlock.code.toLowerCase();
@@ -718,6 +750,7 @@ function HomeContent() {
         const measureTheme = themeColorToken(1, "#0078d4");
         const backgroundTheme = themeColorToken(2, "#ffffff");
 
+        const viewportRect = getViewportBoardRect(boardViewportRef.current, boardState);
         setCards((prev) => {
           const baseCard: Card = {
             id: crypto.randomUUID(),
@@ -749,6 +782,14 @@ function HomeContent() {
             sourceTables: tableIds,
           };
           const seeded = seedCardFormatting(baseCard, prev);
+          const placement = computeCardPlacement(seeded, prev, viewportRect);
+          seeded.layout = {
+            ...seeded.layout,
+            x: placement.x,
+            y: placement.y,
+            width: placement.width,
+            height: placement.height,
+          };
           return [...prev, seeded];
         });
         enqueueMessages((m) => [
@@ -773,7 +814,7 @@ function HomeContent() {
     if (cBlock) {
       const validation = validateSqlAgainstTables(cBlock.code, allowedTableLabels);
       if (!validation.ok) {
-        const kw = validation.message.match(/Keyword \"([^\"]+)\"/i)?.[1];
+        const kw = validation.message.match(BLOCKED_KEYWORD_REGEX)?.[1];
         let context = "";
         if (kw) {
           const lower = cBlock.code.toLowerCase();
@@ -835,6 +876,7 @@ function HomeContent() {
                 backgroundTheme.value ? [backgroundTheme.value] : [],
               )
             : { refs: {}, colors: {} };
+        const viewportRect = getViewportBoardRect(boardViewportRef.current, boardState);
         setCards((prev) => {
           const baseCard: Card = {
             id: crypto.randomUUID(),
@@ -873,6 +915,14 @@ function HomeContent() {
             sourceTables: tableIds,
           };
           const seeded = seedCardFormatting(baseCard, prev);
+          const placement = computeCardPlacement(seeded, prev, viewportRect);
+          seeded.layout = {
+            ...seeded.layout,
+            x: placement.x,
+            y: placement.y,
+            width: placement.width,
+            height: placement.height,
+          };
           return [...prev, seeded];
         });
         enqueueMessages((m) => [
@@ -994,6 +1044,7 @@ function HomeContent() {
                   : null
               }
               formatCopied={formatClipboard?.sourceCardId === card.id}
+              onRecordPatch={handleRecordPatch}
             />
           ))}
         </div>
@@ -1023,6 +1074,7 @@ function HomeContent() {
               className={styles.historyButton}
               onClick={handleUndo}
               aria-label="Undo"
+              disabled={!undoStack.length}
             >
               <Undo2 size={18} />
             </button>
@@ -1031,6 +1083,7 @@ function HomeContent() {
               className={styles.historyButton}
               onClick={handleRedo}
               aria-label="Redo"
+              disabled={!redoStack.length}
             >
               <Redo2 size={18} />
             </button>

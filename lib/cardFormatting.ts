@@ -197,7 +197,10 @@ export function applyFormattingSnapshot(
       next.settings.legend = legend;
     } else if (snapshot.measureAppearance) {
       const info = extractMeasureColor(snapshot.measureAppearance);
-      if (info) {
+      const isStackedBar =
+        next.settings.graph.chartType === "bar" &&
+        next.settings.graph.barLayout === "stacked";
+      if (info && !isStackedBar) {
         next.settings.legend = next.settings.legend ?? {};
         applyColorToLegend(next.settings.legend, info, next.data.series.length);
       }
@@ -214,4 +217,35 @@ export function applyFormattingSnapshot(
   }
 
   return next;
+}
+
+const normalizeChartFamily = (chartType?: string) => {
+  if (!chartType) return undefined;
+  return chartType === "stackedbar" ? "bar" : chartType;
+};
+
+export function seedCardFormatting(card: Card, existing: Card[]): Card {
+  if (!existing.length) return card;
+  const reversed = [...existing].reverse();
+
+  if (card.kind === "measure") {
+    const source = reversed.find((entry) => entry.kind === "measure") ?? reversed[0];
+    return applyFormattingSnapshot(card, buildFormattingSnapshot(source));
+  }
+
+  const targetType = card.settings.graph.chartType;
+  const matchingChart = reversed.find(
+    (entry) =>
+      entry.kind === "chart" &&
+      normalizeChartFamily(entry.settings.graph.chartType) === normalizeChartFamily(targetType),
+  );
+  const source = matchingChart ?? reversed[0];
+  const preserveGraphType =
+    source.kind === "chart" &&
+    normalizeChartFamily(source.settings.graph.chartType) !== normalizeChartFamily(targetType);
+  return applyFormattingSnapshot(
+    card,
+    buildFormattingSnapshot(source),
+    preserveGraphType ? { preserveGraphType: true } : undefined,
+  );
 }
