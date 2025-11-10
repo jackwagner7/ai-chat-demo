@@ -56,10 +56,10 @@ export default function CardSettings({
   const avoidColors = backgroundColor ? [backgroundColor.toLowerCase()] : [];
 
   const defaultOpen: Record<string, boolean> = {
-    title: true,
-    measure: card.kind === "measure",
-    graph: card.kind === "chart",
-    axes: card.kind === "chart",
+    title: false,
+    measure: false,
+    graph: false,
+    axes: false,
     legend: false,
     sql: false,
   };
@@ -126,6 +126,7 @@ export default function CardSettings({
     : "grouped";
   const isStackedLayout = normalizedChartType === "bar" && currentBarLayout === "stacked";
   const canUsePie = !isChart || (chartSeriesCount <= 1 && !isStackedLayout);
+  const promptText = card.settings.sql.prompt?.trim() || null;
   const segmentToggleAvailable = chartCard
     ? normalizedChartType === "bar" && chartSeriesCount <= 1
     : false;
@@ -318,7 +319,8 @@ export default function CardSettings({
             type="button"
             className={deleteStyles.deleteButton}
             onClick={() => setConfirmDelete(true)}
-          >            Delete
+          >
+            Delete
           </button>
         )}
       </div>
@@ -411,6 +413,12 @@ export default function CardSettings({
           open={open.sql}
           onToggle={() => toggle("sql")}
         >
+          {promptText && (
+            <div className={styles.promptNote}>
+              <strong>Original request</strong>
+              <p>{promptText}</p>
+            </div>
+          )}
           {card.kind === "measure" ? (
             <SqlRunner
               code={card.settings.sql.code || ""}

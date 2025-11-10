@@ -3,6 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import type { Msg } from "@/types";
 import styles from "./ChatPanel.module.css";
 
+type ChatPanelProps = {
+  messages: Msg[];
+  input: string;
+  setInput: (v: string) => void;
+  onSend: () => void;
+  hasDataset: boolean;
+  isSending: boolean;
+  globalContextEnabled: boolean;
+  tokenEstimate: number;
+  onToggleGlobalContext: () => void;
+};
+
 export default function ChatPanel({
   messages,
   input,
@@ -10,14 +22,10 @@ export default function ChatPanel({
   onSend,
   hasDataset,
   isSending,
-}: {
-  messages: Msg[];
-  input: string;
-  setInput: (v: string) => void;
-  onSend: () => void;
-  hasDataset: boolean;
-  isSending: boolean;
-}) {
+  globalContextEnabled,
+  tokenEstimate,
+  onToggleGlobalContext,
+}: ChatPanelProps) {
   const [visibleMessage, setVisibleMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -101,22 +109,24 @@ export default function ChatPanel({
             disabled={isSending}
           />
           <button
+            type="button"
             className={`${styles.sendBtn} ${isSending ? styles.sendBtnLoading : ""}`}
             onClick={onSend}
             disabled={isSending || !input.trim()}
             aria-label={isSending ? "Sending..." : "Send message"}
           >
-            {isSending ? <span className={styles.spinner} /> : "➤"}
+            {isSending ? <span className={styles.spinner} /> : "✈️"}
           </button>
         </div>
 
         <button
+          type="button"
           className={`${styles.toggleBtn} ${
             expanded ? `${styles.active} ${styles.flatTop}` : ""
           }`}
-          onClick={() => setExpanded((e) => !e)}
+          onClick={() => setExpanded((state) => !state)}
         >
-          ⤢
+          ▾
         </button>
 
         {visibleMessage && (
@@ -124,6 +134,21 @@ export default function ChatPanel({
             {visibleMessage}
           </div>
         )}
+      </div>
+
+      <div className={styles.statusRow}>
+        <button
+          type="button"
+          className={`${styles.globalToggle} ${
+            globalContextEnabled ? styles.globalToggleOn : styles.globalToggleOff
+          }`}
+          onClick={onToggleGlobalContext}
+        >
+          Global Context: {globalContextEnabled ? "On" : "Off"}
+        </button>
+        <div className={styles.tokenSummary}>
+          Tokens used (approx): <strong>{tokenEstimate}</strong>
+        </div>
       </div>
     </div>
   );

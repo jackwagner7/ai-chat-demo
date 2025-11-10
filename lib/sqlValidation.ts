@@ -107,8 +107,10 @@ export function validateSqlAgainstTables(
   }
 
   const lower = text.toLowerCase();
-  if (!lower.startsWith("select")) {
-    return { ok: false, message: "Only SELECT queries are allowed." };
+  const startsWithSelect = lower.startsWith("select");
+  const startsWithWith = lower.startsWith("with ");
+  if (!startsWithSelect && !startsWithWith) {
+    return { ok: false, message: "Only SELECT queries (optionally wrapped in WITH) are allowed." };
   }
 
   if (text.split(";").filter((segment) => segment.trim().length > 0).length > 1) {

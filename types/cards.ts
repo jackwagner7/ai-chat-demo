@@ -35,6 +35,7 @@ export interface MeasureAppearanceSettings {
 
 export interface SqlSettings {
   code?: string;
+  prompt?: string;
 }
 
 export interface GraphSettings {

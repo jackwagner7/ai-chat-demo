@@ -160,6 +160,46 @@
   color: white;
 }
 
+.globalToggle {
+  margin-left: 0.5rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #111;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.globalToggleOn {
+  background: #15803d;
+  border-color: #166534;
+  color: #fff;
+}
+
+.globalToggleOff {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: calc((800px + 80px) * var(--ui-scale, 1));
+  max-width: 95vw;
+  padding: 0.4rem 0.25rem 0;
+  gap: 1rem;
+}
+
+.tokenSummary {
+  font-size: 0.95rem;
+  color: #111;
+}
+
 /* Messages inside history */
 .message {
   font-size: 1rem;

@@ -8,6 +8,7 @@ import type {
   LegendSettings,
   MeasureCard,
   ChartCard,
+  SqlSettings,
 } from "@/types";
 
 export type CardPatchDelta = {
@@ -17,6 +18,7 @@ export type CardPatchDelta = {
   graph?: GraphSettings;
   axes?: AxesSettings;
   legend?: LegendSettings;
+  sql?: SqlSettings;
 };
 
 export type CardPatch = {
@@ -73,6 +75,12 @@ const applyDelta = (card: Card, delta: CardPatchDelta): Card => {
       };
     }
     next.settings = chartSettings;
+  }
+  if (delta.sql) {
+    next.settings = {
+      ...next.settings,
+      sql: clone(delta.sql) ?? next.settings.sql,
+    };
   }
   return next;
 };
@@ -146,6 +154,12 @@ export const createSettingsPatch = (beforeCard: Card, afterCard: Card): CardPatc
       afterDelta.legend = clone(afterCard.settings.legend);
       changed = true;
     }
+  }
+
+  if (!deepEqual(beforeCard.settings.sql, afterCard.settings.sql)) {
+    beforeDelta.sql = clone(beforeCard.settings.sql);
+    afterDelta.sql = clone(afterCard.settings.sql);
+    changed = true;
   }
 
   if (!changed) return null;

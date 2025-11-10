@@ -3,6 +3,7 @@ import { useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import type { RefObject } from "react";
 import type { Card } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
+import { generatePalette } from "@/lib/chartHelpers";
 import {
   ResponsiveContainer,
   BarChart,
@@ -224,6 +225,70 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
   const segmentColors = legend.segmentColors || {};
   const segmentColorRefs = legend.segmentColorRefs || {};
 
+  const computedSegmentColors = useMemo(() => {
+    if (!legend.segmentColorEnabled) return {};
+
+    const categories: string[] = [];
+    if (isPieLike) {
+      rows.forEach((row, idx) => {
+        const categoryValue = xKey ? row?.[xKey] : idx;
+        categories.push(String(categoryValue ?? idx));
+      });
+    } else if (series.length === 1 && xKey) {
+      rows.forEach((row, idx) => {
+        const categoryValue = xKey ? row?.[xKey] : idx;
+        categories.push(String(categoryValue ?? idx));
+      });
+    }
+    if (!categories.length) return {};
+
+    const uniqueCategories = Array.from(new Set(categories));
+    const usedRefs = new Set<number>(
+      Object.values(segmentColorRefs).filter((value): value is number => typeof value === "number"),
+    );
+
+    const themeCandidates = themeColors
+      .map((color, idx) => ({ color, idx }))
+      .filter(({ color }) => typeof color === "string" && color.length > 0);
+
+    const fallbackPalette = generatePalette(Math.max(uniqueCategories.length, 1));
+    let fallbackPtr = 0;
+
+    const dynamic: Record<string, string> = {};
+
+    uniqueCategories.forEach((category) => {
+      const ref = segmentColorRefs?.[category];
+      const stored =
+        (typeof ref === "number" ? themeColors[ref] : undefined) ??
+        segmentColors?.[category];
+      if (stored) {
+        dynamic[category] = stored;
+        return;
+      }
+
+      const themeOption = themeCandidates.find(({ idx }) => !usedRefs.has(idx));
+      if (themeOption) {
+        usedRefs.add(themeOption.idx);
+        dynamic[category] = themeOption.color ?? fallbackPalette[fallbackPtr % fallbackPalette.length];
+        return;
+      }
+
+      dynamic[category] = fallbackPalette[fallbackPtr % fallbackPalette.length];
+      fallbackPtr += 1;
+    });
+
+    return dynamic;
+  }, [
+    legend.segmentColorEnabled,
+    isPieLike,
+    rows,
+    xKey,
+    series.length,
+    segmentColorRefs,
+    segmentColors,
+    themeColors,
+  ]);
+
   if (!xKey || !rows.length || !series.length) {
     return <div style={{ opacity: 0.6, fontSize: "0.9rem" }}>No data</div>;
   }
@@ -256,7 +321,8 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
                   : segmentColors?.[segmentKey];
               const fallbackColor =
                 seriesColors?.[i % (seriesColors?.length || 1)] || "#8884d8";
-              return <Cell key={i} fill={overrideColor ?? fallbackColor} />;
+              const fill = overrideColor ?? computedSegmentColors[segmentKey] ?? fallbackColor;
+              return <Cell key={i} fill={fill} />;
             })}
             <LabelList
               dataKey={xKey}
@@ -368,7 +434,9 @@ function ChartContent({ card }: { card: Extract<Card, { kind: "chart" }> }) {
                   const overrideColor =
                     (typeof segmentRef === "number"
                       ? themeColors[segmentRef]
-                      : segmentColors?.[categoryKey]) || fill;
+                      : segmentColors?.[categoryKey]) ||
+                    computedSegmentColors[categoryKey] ||
+                    fill;
                   return <Cell key={`${categoryKey}-${idx}`} fill={overrideColor} />;
                 })}
             </Bar>
