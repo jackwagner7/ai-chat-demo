@@ -89,30 +89,42 @@ export function useBoardViewport() {
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(BOARD_STATE_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Partial<BoardState>;
+    if (typeof window === "undefined") return undefined;
+    let cancelled = false;
+    const runUpdate = () => {
+      if (cancelled) return;
+      const stored = window.localStorage.getItem(BOARD_STATE_STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as Partial<BoardState>;
+          updateBoardState({
+            x: typeof parsed.x === "number" ? parsed.x : 0,
+            y: typeof parsed.y === "number" ? parsed.y : 0,
+            scale: typeof parsed.scale === "number" ? parsed.scale : 1,
+          });
+        } catch {
+          updateBoardState({ x: 0, y: 0, scale: 1 });
+        }
+      } else {
+        const viewport = boardViewportRef.current;
+        const vw = viewport?.clientWidth ?? window.innerWidth;
+        const vh = viewport?.clientHeight ?? window.innerHeight;
         updateBoardState({
-          x: typeof parsed.x === "number" ? parsed.x : 0,
-          y: typeof parsed.y === "number" ? parsed.y : 0,
-          scale: typeof parsed.scale === "number" ? parsed.scale : 1,
+          x: (vw - BOARD_WIDTH) / 2,
+          y: (vh - BOARD_HEIGHT) / 2,
+          scale: 1,
         });
-      } catch {
-        updateBoardState({ x: 0, y: 0, scale: 1 });
       }
+      setBoardInitialized(true);
+    };
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(runUpdate);
     } else {
-      const viewport = boardViewportRef.current;
-      const vw = viewport?.clientWidth ?? window.innerWidth;
-      const vh = viewport?.clientHeight ?? window.innerHeight;
-      updateBoardState({
-        x: (vw - BOARD_WIDTH) / 2,
-        y: (vh - BOARD_HEIGHT) / 2,
-        scale: 1,
-      });
+      Promise.resolve().then(runUpdate);
     }
-    setBoardInitialized(true);
+    return () => {
+      cancelled = true;
+    };
   }, [updateBoardState]);
 
   useEffect(() => {

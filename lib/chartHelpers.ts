@@ -44,3 +44,106 @@ export function deriveSeries(rows: Record<string, unknown>[], explicit?: string[
   yKeys = yKeys.filter((k) => typeof rows[0][k] === "number");
   return { xKey, yKeys };
 }
+
+type PreparedChartRows = {
+  rows: Record<string, unknown>[];
+  rawRows: Record<string, unknown>[];
+  xKey: string;
+  yKeys: string[];
+  detectedSeriesKey?: string;
+};
+
+const stringifyValue = (value: unknown) =>
+  value === null || value === undefined ? "" : String(value);
+
+const pivotRows = (
+  rows: Record<string, unknown>[],
+  xKey: string,
+  seriesKey: string,
+  valueKey: string,
+) => {
+  const order: string[] = [];
+  const pivotMap = new Map<string, { xValue: unknown; totals: Map<string, number> }>();
+  const allSeries = new Set<string>();
+
+  rows.forEach((row) => {
+    const xVal = row[xKey];
+    const xToken = stringifyValue(xVal);
+    if (!pivotMap.has(xToken)) {
+      order.push(xToken);
+      pivotMap.set(xToken, { xValue: xVal, totals: new Map() });
+    }
+    const entry = pivotMap.get(xToken)!;
+    const seriesVal = stringifyValue(row[seriesKey]);
+    const numeric = Number(row[valueKey]);
+    if (Number.isNaN(numeric)) return;
+    const current = entry.totals.get(seriesVal) ?? 0;
+    entry.totals.set(seriesVal, current + numeric);
+    allSeries.add(seriesVal);
+  });
+
+  const normalizedRows: Record<string, unknown>[] = order.map((token) => {
+    const entry = pivotMap.get(token)!;
+    const row: Record<string, unknown> = { [xKey]: entry.xValue };
+    entry.totals.forEach((value, series) => {
+      row[series] = value;
+    });
+    return row;
+  });
+
+  return { rows: normalizedRows, yKeys: Array.from(allSeries) };
+};
+
+export function prepareChartRows(
+  rows: Record<string, unknown>[],
+  seriesKey?: string,
+  explicitSeries?: string[],
+): PreparedChartRows {
+  if (!rows?.length) return { rows: [], rawRows: [], xKey: "x", yKeys: [] };
+  const keys = Object.keys(rows[0]);
+  const xKey = keys[0];
+
+  const numericKeys = keys.filter(
+    (key) => key !== xKey && typeof rows[0][key] === "number",
+  );
+
+  let effectiveSeriesKey = seriesKey;
+  if (!effectiveSeriesKey) {
+    const candidate = keys.find((key) => {
+      if (key === xKey) return false;
+      if (numericKeys.includes(key)) return false;
+      const value = rows[0][key];
+      return typeof value === "string";
+    });
+    if (candidate) {
+      const distinct = new Set(rows.map((row) => stringifyValue(row[candidate])));
+      if (distinct.size > 1) {
+        effectiveSeriesKey = candidate;
+      }
+    }
+  }
+
+  if (effectiveSeriesKey && keys.includes(effectiveSeriesKey)) {
+    const numericColumns = numericKeys.filter((key) => key !== effectiveSeriesKey);
+    const valueKey = numericColumns[0];
+    if (valueKey) {
+      const { rows: normalizedRows, yKeys } = pivotRows(
+        rows,
+        xKey,
+        effectiveSeriesKey,
+        valueKey,
+      );
+      return {
+        rows: normalizedRows,
+        rawRows: rows,
+        xKey,
+        yKeys,
+        detectedSeriesKey:
+          effectiveSeriesKey !== seriesKey ? effectiveSeriesKey : undefined,
+      };
+    }
+  }
+
+  const derived = deriveSeries(rows, explicitSeries);
+  return { rows, rawRows: rows, xKey: derived.xKey, yKeys: derived.yKeys };
+}

@@ -1,0 +1,25 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dvizzi-ring" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#FDBB2D"/>
+      <stop offset="100%" stop-color="#FF6B6B"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="128" fill="#0F172A"/>
+  <g filter="url(#soft-shadow)">
+    <circle cx="128" cy="128" r="96" fill="url(#dvizzi-ring)"/>
+  </g>
+  <text
+    x="128"
+    y="146"
+    text-anchor="middle"
+    font-family="Geist, 'Segoe UI', sans-serif"
+    font-size="92"
+    font-weight="700"
+    letter-spacing="6"
+    fill="#0F172A"
+  >DV</text>
+</svg>

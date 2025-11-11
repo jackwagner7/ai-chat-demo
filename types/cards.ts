@@ -62,6 +62,7 @@ export interface LegendSettings {
   segmentColorRefs?: Record<string, number | undefined>;
   segmentColors?: Record<string, string | undefined>;
   segmentColorEnabled?: boolean;
+  seriesKey?: string;
 }
 
 export interface MeasureCard {
@@ -87,6 +88,7 @@ export interface ChartCard {
   kind: "chart";
   data: {
     rows: Record<string, unknown>[];
+    rawRows?: Record<string, unknown>[];
     xKey?: string;
     series: string[];
   };

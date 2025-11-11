@@ -3,7 +3,7 @@ import ColorSwatches from "@/components/ColorSwatches";
 import styles from "../CardSettings.module.css";
 import type { Card } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
-import { ensureSegmentColors } from "./settingsUtils";
+import { ensureSegmentColors } from "@/components/Card/Settings/utils/settingsUtils";
 
 type ChartCard = Extract<Card, { kind: "chart" }>;
 

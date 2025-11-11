@@ -13,10 +13,12 @@ export const CARD_SCHEMA_DOC = `[
       "xLabel": "X axis label",
       "yLabel": "Y axis label"
     },
+      "legend": {
+        "seriesKey": "Optional column name used to derive multiple series (omit for single-series charts)"
+      },
     "sql": {
       "code": "SELECT ...",
       "prompt": "User request that produced this card"
     }
   }
 ]`;
-

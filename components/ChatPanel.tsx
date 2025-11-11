@@ -115,7 +115,7 @@ export default function ChatPanel({
             disabled={isSending || !input.trim()}
             aria-label={isSending ? "Sending..." : "Send message"}
           >
-            {isSending ? <span className={styles.spinner} /> : "✈️"}
+            {isSending ? <span className={styles.spinner} /> : "➤"}
           </button>
         </div>
 

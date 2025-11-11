@@ -121,14 +121,21 @@ const mergeSections = <T extends Record<string, unknown>>(
 
 export function normalizeInstruction(block: PatchBlock): PatchBlock {
   const { settings, ...rest } = block;
-  if (!settings) return rest;
-  return {
-    ...rest,
-    titleBackground: mergeSections(rest.titleBackground, settings.titleBackground),
-    measureAppearance: mergeSections(rest.measureAppearance, settings.measureAppearance),
-    graph: mergeSections(rest.graph, settings.graph),
-    axes: mergeSections(rest.axes, settings.axes),
-    legend: mergeSections(rest.legend, settings.legend),
-    sql: mergeSections(rest.sql, settings.sql),
-  };
+  const merged = settings
+    ? {
+        ...rest,
+        titleBackground: mergeSections(rest.titleBackground, settings.titleBackground),
+        measureAppearance: mergeSections(rest.measureAppearance, settings.measureAppearance),
+        graph: mergeSections(rest.graph, settings.graph),
+        axes: mergeSections(rest.axes, settings.axes),
+        legend: mergeSections(rest.legend, settings.legend),
+        sql: mergeSections(rest.sql, settings.sql),
+      }
+    : rest;
+
+  if (!merged.legend) {
+    merged.legend = {};
+  }
+
+  return merged;
 }

@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ColorSwatches from "@/components/ColorSwatches";
-import { TitleInput } from ".";
+import { TitleInput } from "@/components/Card/Settings/Inputs";
 import styles from "../CardSettings.module.css";
 import type { AlignX, Card, TitleBackgroundSettings } from "@/types";
 import { useTheme } from "@/context/ThemeContext";

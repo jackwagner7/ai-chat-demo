@@ -8,6 +8,7 @@ import type {
   UploadedTableInfo,
 } from "@/types";
 import { extractReferencedTables } from "@/lib/sqlValidation";
+import { ensureCardLayout } from "@/lib/cardLayout";
 import {
   getErrorFromResult,
   toNonEmptyString,
@@ -37,8 +38,6 @@ type DatasetSummary = Pick<StoredDataset, "displayName" | "columns" | "sourceFil
 
 type EnqueueMessages = (updater: Msg[] | ((prev: Msg[]) => Msg[])) => void;
 
-type EnsureCardLayout = (card: Card, index: number, options?: { forceScale?: boolean }) => Card;
-
 type UseDashboardStateArgs = {
   cards: Card[];
   setCards: Dispatch<SetStateAction<Card[]>>;
@@ -48,7 +47,6 @@ type UseDashboardStateArgs = {
   setThemeColors: Dispatch<SetStateAction<string[]>>;
   backgroundColor: string;
   setBackgroundColor: Dispatch<SetStateAction<string>>;
-  ensureCardLayout: EnsureCardLayout;
 };
 
 export type UseDashboardStateResult = {
@@ -148,7 +146,6 @@ export function useDashboardState({
   setThemeColors,
   backgroundColor,
   setBackgroundColor,
-  ensureCardLayout,
 }: UseDashboardStateArgs): UseDashboardStateResult {
   const [schema, setSchema] = useState("");
   const [uploadedTables, setUploadedTables] = useState<UploadedTableInfo[]>([]);
@@ -210,7 +207,7 @@ export function useDashboardState({
     } finally {
       setHasHydratedState(true);
     }
-  }, [ensureCardLayout, setBackgroundColor, setCards, setSelectedCardId, setThemeColors]);
+  }, [setBackgroundColor, setCards, setSelectedCardId, setThemeColors]);
 
   useEffect(() => {
     if (!hasHydratedState) return;
@@ -235,7 +232,6 @@ export function useDashboardState({
     backgroundColor,
     cards,
     datasets,
-    ensureCardLayout,
     hasHydratedState,
     preview,
     schema,

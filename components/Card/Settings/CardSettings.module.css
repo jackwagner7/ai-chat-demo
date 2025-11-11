@@ -214,6 +214,48 @@
   color: #000;
 }
 
+.seriesHeading input {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  font-size: 0.9rem;
+}
+
+.seriesSelect {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.seriesHint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.seriesHeading input {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  font-size: 0.9rem;
+}
+
+.seriesHint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
 .seriesMeta {
   font-size: 0.8rem;
   color: #000;
@@ -515,4 +557,3 @@
 .sectionCard summary::-webkit-details-marker {
   display: none;
 }
-

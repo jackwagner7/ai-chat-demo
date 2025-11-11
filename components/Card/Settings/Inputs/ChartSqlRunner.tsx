@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import styles from "../CardSettings.module.css";
 import type { Card } from "@/types";
-import { ensureSeriesDisplayNames, ensureSegmentColors } from "./settingsUtils";
+import { ensureSeriesDisplayNames, ensureSegmentColors } from "@/components/Card/Settings/utils/settingsUtils";
 import { validateSqlAgainstTables, rewriteSqlTables } from "@/lib/sqlValidation";
 
 type DataRow = Record<string, unknown>;

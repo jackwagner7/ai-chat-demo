@@ -1,4 +1,4 @@
-import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   extractBlock,
   extractPatchBlocks,
@@ -52,6 +52,9 @@ export type UseChatOrchestratorResult = {
   tokenEstimate: number;
 };
 
+const GLOBAL_CONTEXT_KEY = "aidata.chat.global-context";
+const TOKEN_ESTIMATE_KEY = "aidata.chat.token-estimate";
+
 const getStringField = (record: Record<string, unknown>, key: string): string | undefined =>
   toNonEmptyString(record[key]);
 
@@ -72,8 +75,25 @@ export function useChatOrchestrator({
 }: UseChatOrchestratorArgs): UseChatOrchestratorResult {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [includeAllCards, setIncludeAllCards] = useState(true);
-  const [tokenEstimate, setTokenEstimate] = useState(0);
+  const [includeAllCards, setIncludeAllCards] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(GLOBAL_CONTEXT_KEY) === "true";
+  });
+  const [tokenEstimate, setTokenEstimate] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const stored = window.localStorage.getItem(TOKEN_ESTIMATE_KEY);
+    return stored ? Number(stored) : 0;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(GLOBAL_CONTEXT_KEY, includeAllCards ? "true" : "false");
+  }, [includeAllCards]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(TOKEN_ESTIMATE_KEY, String(tokenEstimate));
+  }, [tokenEstimate]);
 
   const toggleIncludeAllCards = useCallback(() => {
     setIncludeAllCards((prev) => !prev);
@@ -118,6 +138,11 @@ export function useChatOrchestrator({
 
       const instructionPayload = parseInstructionPayload(reply);
       if (instructionPayload && instructionPayload.length) {
+        instructionPayload.forEach((instruction) => {
+          if (!instruction.legend) {
+            instruction.legend = {};
+          }
+        });
         const patchInstructions = instructionPayload.filter((instruction) => instruction.cardId);
         const createInstructions = instructionPayload.filter((instruction) => !instruction.cardId);
         let instructionApplied = false;
@@ -140,7 +165,7 @@ export function useChatOrchestrator({
             instructionApplied = true;
           }
         }
-
+        console.log(createInstructions)
         if (createInstructions.length) {
           let createdAny = false;
           for (const instruction of createInstructions) {
@@ -169,6 +194,8 @@ export function useChatOrchestrator({
                 instruction.titleBackground?.title?.trim() ||
                 instruction.cardTitle ||
                 "Chart Card";
+                  console.log(title, sqlCode, instruction)
+
               const created = await runChartCreation({
                 title,
                 sqlCode,
@@ -177,6 +204,7 @@ export function useChatOrchestrator({
                 overrides: instruction,
                 explicitSeries: instruction.series,
               });
+              console.log(created)
               createdAny = createdAny || created;
             } else {
               enqueueMessages((m) => [

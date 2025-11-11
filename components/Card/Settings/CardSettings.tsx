@@ -3,20 +3,29 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import {
   SqlRunner,
+  ChartSqlRunner,
+} from "@/components/Card/Settings/Inputs";
+import {
   SettingsSection,
   TitleBackgroundSection,
   MeasureAppearanceSection,
   GraphSection,
   AxesSection,
   LegendSection,
-  ChartSqlRunner,
+} from "@/components/Card/Settings/Sections";
+import {
   ensureSeriesDisplayNames,
   ensureSegmentColors,
-} from "@/components/Card/Settings/Components";
+} from "@/components/Card/Settings/utils/settingsUtils";
 import styles from "./CardSettings.module.css";
 import deleteStyles from "@/components/shared/DeleteConfirm.module.css";
 import { Trash2 } from "lucide-react";
 import type { Card } from "@/types";
+import {
+  CARD_SETTINGS_LAYOUT,
+  CARD_SETTINGS_LABELS,
+  type CardSettingsSectionKey,
+} from "@/components/Card/Settings/settingsConfig";
 
 type CardSettingsProps = {
   card: Card;
@@ -108,11 +117,10 @@ export default function CardSettings({
   const chartSeries = chartCard?.data.series ?? [];
   const chartSeriesCount = chartSeries.length;
   const chartSeriesKey = chartSeries.join("|");
-  const normalizedChartType = chartCard
-    ? chartCard.settings.graph.chartType === "stackedbar"
+  const normalizedChartType =
+    chartCard?.settings.graph.chartType === "stackedbar"
       ? "bar"
-      : (chartCard.settings.graph.chartType as "line" | "bar" | "pie")
-    : undefined;
+      : (chartCard?.settings.graph.chartType as "line" | "bar" | "pie");
   const normalizedChartTypeLabel =
     card.kind === "chart"
       ? (chartCard?.settings.graph.chartType || "chart").replace(/^\w/, (c) => c.toUpperCase())
@@ -181,6 +189,85 @@ export default function CardSettings({
       shouldUseSegmentColors &&
       (hasMissingSegments || hasStaleSegments || hasInvalidRefs),
     );
+
+  const sectionKeys =
+    CARD_SETTINGS_LAYOUT[card.kind as Extract<Card["kind"], "measure" | "chart">] ?? [];
+
+  const renderSectionContent = (key: CardSettingsSectionKey) => {
+    switch (key) {
+      case "title":
+        return (
+          <TitleBackgroundSection
+            card={card}
+            onUpdate={updateCard}
+            blockedThemeRefs={blockedThemeRefs}
+            blockedColorValues={blockedColorValues}
+          />
+        );
+      case "measure": {
+        if (card.kind !== "measure") return null;
+        return (
+          <MeasureAppearanceSection
+            card={card}
+            onUpdate={(updater) =>
+              updateCard((draft) => {
+                if (draft.kind === "measure") updater(draft);
+              })
+            }
+          />
+        );
+      }
+      case "graph":
+        if (!chartCard) return null;
+        return (
+          <GraphSection
+            card={chartCard}
+            onUpdate={(updater) =>
+              updateCard((draft) => {
+                if (draft.kind === "chart") updater(draft);
+              })
+            }
+            normalizedChartType={normalizedChartType || "bar"}
+            canUsePie={canUsePie}
+            chartSeriesCount={chartSeriesCount}
+            currentBarLayout={currentBarLayout}
+          />
+        );
+      case "axes":
+        if (!chartCard) return null;
+        return (
+          <AxesSection
+            card={chartCard}
+            onUpdate={(updater) =>
+              updateCard((draft) => {
+                if (draft.kind === "chart") updater(draft);
+              })
+            }
+          />
+        );
+      case "legend":
+        if (!chartCard) return null;
+        return (
+          <LegendSection
+            card={chartCard}
+            onUpdate={(updater) =>
+              updateCard((draft) => {
+                if (draft.kind === "chart") updater(draft);
+              })
+            }
+            chartType={(normalizedChartType || "bar")}
+            segmentToggleAvailable={Boolean(segmentToggleAvailable)}
+            shouldUseSegmentColors={shouldUseSegmentColors}
+            segmentCategories={segmentCategories}
+            blockedThemeRefs={blockedThemeRefs}
+            blockedColorValues={blockedColorValues}
+            avoidColors={avoidColors}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   useEffect(() => {
     if (!chartCard) return;
@@ -325,134 +412,63 @@ export default function CardSettings({
         )}
       </div>
 
-      <div className={styles.sectionList}>
-        <SettingsSection
-          label="Title & Background"
-          open={open.title}
-          onToggle={() => toggle("title")}
-        >
-          <TitleBackgroundSection
-            card={card}
-            onUpdate={updateCard}
-            blockedThemeRefs={blockedThemeRefs}
-            blockedColorValues={blockedColorValues}
-          />
-        </SettingsSection>
+        <div className={styles.sectionList}>
+          {sectionKeys.map((key) => (
+            <SettingsSection
+              key={key}
+              label={CARD_SETTINGS_LABELS[key]}
+              open={open[key]}
+              onToggle={() => toggle(key)}
+            >
+              {renderSectionContent(key)}
+            </SettingsSection>
+          ))}
 
-        {card.kind === "measure" && (
           <SettingsSection
-            label="Measure Appearance"
-            open={open.measure}
-            onToggle={() => toggle("measure")}
+            label="SQL"
+            open={open.sql}
+            onToggle={() => toggle("sql")}
           >
-            <MeasureAppearanceSection
-              card={card}
-              onUpdate={(updater) => updateCard((draft) => {
-                if (draft.kind === "measure") updater(draft);
-              })}
-            />
+            {promptText && (
+              <div className={styles.promptNote}>
+                <strong>Original request</strong>
+                <p>{promptText}</p>
+              </div>
+            )}
+            {card.kind === "measure" ? (
+              <SqlRunner
+                code={card.settings.sql.code || ""}
+                allowedTables={allowedTables}
+                tableNameMap={tableNameMap}
+                onRunSuccess={(rows, newSql, tables) =>
+                  updateCard((draft) => {
+                    const firstRow = rows[0];
+                    const firstValue = firstRow ? Object.values(firstRow)[0] : undefined;
+                    const nextValue: string | number =
+                      typeof firstValue === "number"
+                        ? firstValue
+                        : String(
+                            firstValue === undefined || firstValue === null ? "" : firstValue,
+                          );
+                    draft.settings.sql.code = newSql;
+                    if (draft.kind === "measure") {
+                      draft.data.value = nextValue;
+                    }
+                    draft.sourceTables = tables;
+                  })
+                }
+              />
+            ) : (
+              <ChartSqlRunner
+                card={card}
+                onChange={onChange}
+                themeColors={themeColors}
+                allowedTables={allowedTables}
+                tableNameMap={tableNameMap}
+              />
+            )}
           </SettingsSection>
-        )}
-
-        {card.kind === "chart" && (
-          <>
-            <SettingsSection
-              label="Graph"
-              open={open.graph}
-              onToggle={() => toggle("graph")}
-            >
-              <GraphSection
-                card={card}
-                onUpdate={(updater) => updateCard((draft) => {
-                  if (draft.kind === "chart") updater(draft);
-                })}
-                normalizedChartType={normalizedChartType || "bar"}
-                canUsePie={canUsePie}
-                chartSeriesCount={chartSeriesCount}
-                currentBarLayout={currentBarLayout}
-              />
-            </SettingsSection>
-
-            <SettingsSection
-              label="Axes"
-              open={open.axes}
-              onToggle={() => toggle("axes")}
-            >
-              <AxesSection
-                card={card}
-                onUpdate={(updater) => updateCard((draft) => {
-                  if (draft.kind === "chart") updater(draft);
-                })}
-              />
-            </SettingsSection>
-
-            <SettingsSection
-              label="Legend & Series"
-              open={open.legend}
-              onToggle={() => toggle("legend")}
-            >
-              <LegendSection
-                card={card}
-                onUpdate={(updater) => updateCard((draft) => {
-                  if (draft.kind === "chart") updater(draft);
-                })}
-                chartType={(normalizedChartType || "bar")}
-                segmentToggleAvailable={Boolean(segmentToggleAvailable)}
-                shouldUseSegmentColors={shouldUseSegmentColors}
-                segmentCategories={segmentCategories}
-                blockedThemeRefs={blockedThemeRefs}
-                blockedColorValues={blockedColorValues}
-                avoidColors={avoidColors}
-              />
-            </SettingsSection>
-          </>
-        )}
-
-        <SettingsSection
-          label="SQL"
-          open={open.sql}
-          onToggle={() => toggle("sql")}
-        >
-          {promptText && (
-            <div className={styles.promptNote}>
-              <strong>Original request</strong>
-              <p>{promptText}</p>
-            </div>
-          )}
-          {card.kind === "measure" ? (
-            <SqlRunner
-              code={card.settings.sql.code || ""}
-              allowedTables={allowedTables}
-              tableNameMap={tableNameMap}
-              onRunSuccess={(rows, newSql, tables) =>
-                updateCard((draft) => {
-                  const firstRow = rows[0];
-                  const firstValue = firstRow ? Object.values(firstRow)[0] : undefined;
-                  const nextValue: string | number =
-                    typeof firstValue === "number"
-                      ? firstValue
-                      : String(
-                          firstValue === undefined || firstValue === null ? "" : firstValue,
-                        );
-                  draft.settings.sql.code = newSql;
-                  if (draft.kind === "measure") {
-                    draft.data.value = nextValue;
-                  }
-                  draft.sourceTables = tables;
-                })
-              }
-            />
-          ) : (
-            <ChartSqlRunner
-              card={card}
-              onChange={onChange}
-              themeColors={themeColors}
-              allowedTables={allowedTables}
-              tableNameMap={tableNameMap}
-            />
-          )}
-        </SettingsSection>
-      </div>
+        </div>
     </div>
   );
 }
